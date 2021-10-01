@@ -22,7 +22,7 @@ class GoogleSignInArgs extends ProviderArgs {
   });
 
   @override
-  String buildSignInUri() {
+  Future<String> buildSignInUri() async {
     final uri = Uri(
       scheme: 'https',
       host: _host,

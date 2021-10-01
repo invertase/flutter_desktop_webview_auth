@@ -1,11 +1,11 @@
 abstract class ProviderArgs {
   String get redirectUri;
-  String buildSignInUri();
+  Future<String> buildSignInUri();
   String? extractToken(String callbackUrl);
 
-  Map<String, String> toJson() {
+  Future<Map<String, String>> toJson() async {
     return {
-      'signInUri': buildSignInUri(),
+      'signInUri': await buildSignInUri(),
       'redirectUri': redirectUri,
     };
   }
