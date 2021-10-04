@@ -11,7 +11,7 @@ class DesktopWebviewAuth {
   static Future<String?> signIn(ProviderArgs args) async {
     final callbackUrl = await _channel.invokeMethod<String>(
       'signIn',
-      args.toJson(),
+      await args.toJson(),
     );
 
     if (callbackUrl == null) {
