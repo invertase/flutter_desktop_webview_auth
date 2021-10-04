@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:desktop_webview_auth/src/auth_result.dart';
 import 'package:http/http.dart' as http;
 import 'src/provider_args.dart';
 
 const _host = 'api.twitter.com';
-const _authPath = '/oauth/authenticate';
-const _requestTokenPath = '/oauth/access_token';
+const _authPath = '/oauth/authorize';
+const _requestTokenPath = '/oauth/request_token';
+const _accessTokenPath = '/oauth/access_token';
 
 const _kSignatureMethod = 'HMAC-SHA1';
 const _kOAuthVersion = '1.0';
@@ -28,49 +30,73 @@ class TwitterSignInArgs extends ProviderArgs {
   @override
   Future<String> buildSignInUri() async {
     final token = await getRequestToken();
-    return 'https://api.twitter.com/oauth/authorize?oauth_token=$token';
+    return 'https://api.twitter.com$_authPath?oauth_token=$token';
   }
 
   @override
-  String? extractToken(String callbackUrl) {
-    print(callbackUrl);
+  Future<AuthResult?> authorizeFromCallback(String callbackUrl) async {
+    final parsed = Uri.parse(callbackUrl);
+    final oauthToken = parsed.queryParameters['oauth_token'] as String;
+    final oauthVerifier = parsed.queryParameters['oauth_verifier'] as String;
+
+    final res = await _post(_accessTokenPath, {
+      'oauth_token': oauthToken,
+      'oauth_verifier': oauthVerifier,
+    });
+
+    if (res == null) throw Exception("Couldn't authroize");
+
+    final decodedRes = Uri.splitQueryString(res);
+
+    return AuthResult(
+      decodedRes['oauth_token']!,
+      decodedRes['oauth_token_secret'],
+    );
   }
 
   Future<String> getRequestToken() async {
+    try {
+      final res = await _post(_requestTokenPath, {
+        'oauth_callback': Uri.encodeFull(redirectUri),
+      });
+
+      if (res == null) throw Exception();
+
+      final body = Uri.splitQueryString(res);
+
+      if (body.containsKey('oauth_token')) {
+        return body['oauth_token'] as String;
+      } else {
+        throw Exception();
+      }
+    } on Exception catch (_) {
+      throw Exception("Couldn't get request token");
+    }
+  }
+
+  Future<String?> _post(String path, Map<String, String> params) async {
     final uri = Uri(
       scheme: 'https',
       host: _host,
-      path: '/oauth/request_token',
+      path: path,
     );
-
-    final reqBody = {
-      'oauth_callback': Uri.encodeFull(redirectUri),
-    };
 
     try {
       final authorization = _buildAuthHeader(
         method: 'POST',
         uri: uri,
-        params: reqBody,
+        params: params,
       );
 
       final res = await http.post(
         uri,
-        headers: {
-          'Authorization': authorization,
-        },
+        headers: {'Authorization': authorization},
       );
 
       if (res.statusCode == 200) {
-        final body = Uri.splitQueryString(res.body);
-
-        if (body.containsKey('oauth_token')) {
-          return body['oauth_token'] as String;
-        } else {
-          throw Exception("Couldn't get request token");
-        }
+        return res.body;
       } else {
-        throw Exception("Couldn't get request token");
+        throw Exception('HttpCode: ${res.statusCode}, Body: ${res.body}');
       }
     } catch (e) {
       rethrow;
@@ -84,6 +110,7 @@ class TwitterSignInArgs extends ProviderArgs {
   }) {
     final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final nonce = generateNonce();
+    final requestSecretKey = params['oauth_token_secret'];
 
     final signature = _createSignature(
       method: method,
@@ -91,9 +118,11 @@ class TwitterSignInArgs extends ProviderArgs {
       timestamp: timestamp,
       nonce: nonce,
       params: params,
+      requestSecretKey: requestSecretKey ?? '',
     );
 
     final paramsClone = Map<String, dynamic>.from(params);
+
     final authComponents = [
       'OAuth oauth_consumer_key="$apiKey"',
       'oauth_nonce="$nonce"',
@@ -117,7 +146,7 @@ class TwitterSignInArgs extends ProviderArgs {
     required int timestamp,
     required String nonce,
     required Map<String, String> params,
-    String requestToken = '',
+    String requestSecretKey = '',
   }) {
     final signatureParams = {
       ...params,
@@ -149,7 +178,10 @@ class TwitterSignInArgs extends ProviderArgs {
         '&$encodedUri'
         '&$encodedParamString';
 
-    final signingKey = '${Uri.encodeComponent(apiSecretKey)}&$requestToken';
+    final encodedSecretKey = Uri.encodeComponent(apiSecretKey);
+    final encodedSecretRequestKey = Uri.encodeComponent(requestSecretKey);
+
+    final signingKey = '$encodedSecretKey&$encodedSecretRequestKey';
 
     final hmacSha1 = Hmac(sha1, signingKey.codeUnits);
     final digest = hmacSha1.convert(signatureBaseString.codeUnits);
