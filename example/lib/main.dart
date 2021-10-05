@@ -7,15 +7,18 @@ void main() {
   runApp(const MyApp());
 }
 
+typedef SignInCallback = Future<void> Function();
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  signInWithArgs(BuildContext context, ProviderArgs args) => () async {
+  SignInCallback signInWithArgs(BuildContext context, ProviderArgs args) =>
+      () async {
         final result = await DesktopWebviewAuth.signIn(args);
         notify(context, result);
       };
 
-  notify(BuildContext context, AuthResult? result) {
+  void notify(BuildContext context, AuthResult? result) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('access token: ${result?.accessToken}'),

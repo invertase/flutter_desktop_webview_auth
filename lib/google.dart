@@ -1,4 +1,5 @@
 import 'package:desktop_webview_auth/src/auth_result.dart';
+import 'package:flutter/foundation.dart';
 
 import 'src/provider_args.dart';
 
@@ -38,14 +39,16 @@ class GoogleSignInArgs extends ProviderArgs {
       },
     );
 
-    return uri.toString();
+    return SynchronousFuture(uri.toString());
   }
 
   @override
   Future<AuthResult?> authorizeFromCallback(String callbackUrl) async {
     final uri = Uri.parse(callbackUrl.replaceFirst('#', '?'));
+
     if (uri.queryParameters.containsKey('access_token')) {
-      return AuthResult(uri.queryParameters['access_token']!);
+      final result = AuthResult(uri.queryParameters['access_token']!);
+      return SynchronousFuture(result);
     }
   }
 }
