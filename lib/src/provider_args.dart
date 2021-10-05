@@ -1,11 +1,13 @@
+import 'auth_result.dart';
+
 abstract class ProviderArgs {
   String get redirectUri;
-  String buildSignInUri();
-  String? extractToken(String callbackUrl);
+  Future<String> buildSignInUri();
+  Future<AuthResult?> authorizeFromCallback(String callbackUrl);
 
-  Map<String, String> toJson() {
+  Future<Map<String, String>> toJson() async {
     return {
-      'signInUri': buildSignInUri(),
+      'signInUri': await buildSignInUri(),
       'redirectUri': redirectUri,
     };
   }
