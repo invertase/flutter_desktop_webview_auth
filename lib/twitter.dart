@@ -1,13 +1,11 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:desktop_webview_auth/src/auth_result.dart';
 import 'package:http/http.dart' as http;
 import 'src/provider_args.dart';
+import 'src/util.dart';
 
-const _host = 'api.twitter.com';
-const _authPath = '/oauth/authorize';
 const _requestTokenPath = '/oauth/request_token';
 const _accessTokenPath = '/oauth/access_token';
 
@@ -21,16 +19,29 @@ class TwitterSignInArgs extends ProviderArgs {
   @override
   final String redirectUri;
 
+  @override
+  final host = 'api.twitter.com';
+
+  @override
+  final path = '/oauth/authorize';
+
   TwitterSignInArgs({
     required this.apiKey,
     required this.apiSecretKey,
     required this.redirectUri,
   });
 
+  late String token;
+
+  @override
+  Map<String, String> buildQueryParameters() {
+    return {'oauth_token': token};
+  }
+
   @override
   Future<String> buildSignInUri() async {
-    final token = await getRequestToken();
-    return 'https://api.twitter.com$_authPath?oauth_token=$token';
+    token = await getRequestToken();
+    return super.buildSignInUri();
   }
 
   @override
@@ -77,7 +88,7 @@ class TwitterSignInArgs extends ProviderArgs {
   Future<String?> _post(String path, Map<String, String> params) async {
     final uri = Uri(
       scheme: 'https',
-      host: _host,
+      host: host,
       path: path,
     );
 
@@ -189,16 +200,4 @@ class TwitterSignInArgs extends ProviderArgs {
 
     return Uri.encodeComponent(signature);
   }
-}
-
-/// Generates a cryptographically secure random nonce, to be included in a
-/// credential request.
-String generateNonce([int length = 32]) {
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz';
-  final random = Random.secure();
-
-  return List.generate(
-    length,
-    (_) => chars[random.nextInt(chars.length)],
-  ).join();
 }
