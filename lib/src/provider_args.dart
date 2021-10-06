@@ -22,7 +22,7 @@ abstract class ProviderArgs {
 
   bool usesFragment = true;
 
-  Future<AuthResult?> authorizeFromCallback(String callbackUrl) async {
+  Future<AuthResult?> authorizeFromCallback(String callbackUrl) {
     final uri = Uri.parse(callbackUrl);
     late Map<String, String> args;
 
@@ -36,6 +36,8 @@ abstract class ProviderArgs {
       final result = AuthResult(args['access_token']!);
       return SynchronousFuture(result);
     }
+
+    throw Exception('No access token found');
   }
 
   Future<Map<String, String>> toJson() async {
