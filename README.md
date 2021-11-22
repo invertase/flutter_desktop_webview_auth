@@ -1,15 +1,63 @@
-# desktop_webview_auth
+# Desktop webview auth
 
-A new flutter plugin project.
+This package enables Firebase OAuth on desktop via webview
 
-## Getting Started
+## Supported providers:
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/developing-packages/),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+- Google
+- Facebook
+- Twitter
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Installation
 
+Add dependency
+
+```bash
+flutter pub add desktop_webview_auth
+```
+
+Imports
+
+```dart
+import 'package:desktop_webview_auth/desktop_webview_auth.dart';
+import 'package:desktop_webview_auth/google.dart';
+import 'package:desktop_webview_auth/facebook.dart';
+import 'package:desktop_webview_auth/twitter.dart';
+```
+
+## Usage
+
+- Configure OAuth providers in firebase console
+- Create an instance of `ProviderArgs`
+
+```dart
+final googleSignInArgs = GoogleSignInArgs(
+  clientId:
+    '448618578101-sg12d2qin42cpr00f8b0gehs5s7inm0v.apps.googleusercontent.com',
+  redirectUri:
+    'https://react-native-firebase-testing.firebaseapp.com/__/auth/handler',
+)
+```
+
+- call `DesktopWebviewAuth.signIn`
+
+```dart
+try {
+    final result = await DesktopWebviewAuth.signIn(args);
+
+    print(result?.accessToken);
+    print(result?.tokenSecret);
+} catch (err) {
+    // something went wrong
+}
+```
+
+- create an instance of `OAuthCredential` and sign in
+
+```dart
+import 'package:firebase_auth/firebase_auth.dart';
+
+final credential = GoogleAuthProvider.credential(accessToken: result.accessToken)
+
+FirebaseAuth.instance.signInWithCredential(credential);
+```
