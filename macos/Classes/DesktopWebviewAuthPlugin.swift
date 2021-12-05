@@ -15,6 +15,7 @@ public class WebviewController: NSViewController, WKNavigationDelegate {
     var onComplete: ((String?) -> Void)?
     
     public override func loadView() {
+        self.title = ""
         let webView = WKWebView(frame: NSMakeRect(0, 0, width ?? 980, height ?? 720))
         
         webView.navigationDelegate = self
