@@ -36,6 +36,7 @@ final googleSignInArgs = GoogleSignInArgs(
     '448618578101-sg12d2qin42cpr00f8b0gehs5s7inm0v.apps.googleusercontent.com',
   redirectUri:
     'https://react-native-firebase-testing.firebaseapp.com/__/auth/handler',
+  scope: 'email',
 )
 ```
 
