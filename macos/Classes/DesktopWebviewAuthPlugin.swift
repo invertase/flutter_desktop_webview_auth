@@ -83,6 +83,8 @@ public class DesktopWebviewAuthPlugin: NSObject, FlutterPlugin {
             signIn(
                 signInUri: args["signInUri"] as! String,
                 redirectUri: args["redirectUri"] as! String,
+                width: args["width"] as? CGFloat,
+                height: args["height"] as? CGFloat,
                 result: result
             )
         default:
@@ -90,11 +92,13 @@ public class DesktopWebviewAuthPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    func signIn(signInUri: String, redirectUri: String, result: @escaping FlutterResult) {
+    func signIn(signInUri: String, redirectUri: String, width: CGFloat?, height: CGFloat?, result: @escaping FlutterResult) {
         let appWindow = NSApplication.shared.windows.first!
         let webviewController = WebviewController()
         
         webviewController.redirectUri = redirectUri
+        webviewController.width = width
+        webviewController.height = height
         webviewController.onComplete = { (callbackUrl) -> Void in
             result(callbackUrl)
         }
