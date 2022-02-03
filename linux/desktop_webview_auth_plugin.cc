@@ -39,7 +39,7 @@ static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_da
     const gchar *callbackUri = (gchar *)webkit_web_view_get_uri(view);
     g_autoptr(FlValue) result = fl_value_new_string(callbackUri);
 
-    fl_method_channel_invoke_method(plugin->method_channel, "callbackUri",
+    fl_method_channel_invoke_method(plugin->method_channel, "getCallbackUrl",
                                     result, nullptr, nullptr, &plugin);
 
     g_free(plugin->redirectUri);
