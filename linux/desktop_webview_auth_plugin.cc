@@ -18,7 +18,9 @@ struct _DesktopWebviewAuthPlugin
   GObject parent_instance;
   FlPluginRegistrar *registrar;
   FlMethodChannel *method_channel;
-  gchar *redirectUri;
+  gulong load_change_handler;
+  gchar *redirectUrl;
+  gchar *callbackUrl;
   GtkWidget *popupWindow;
 };
 
@@ -27,24 +29,36 @@ G_DEFINE_TYPE(DesktopWebviewAuthPlugin, desktop_webview_auth_plugin, g_object_ge
 static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_data)
 {
   const gchar *uri = webkit_web_view_get_uri(view);
-  const gchar *redirectUri = plugin->redirectUri;
+  const gchar *redirectUrl = plugin->redirectUrl;
 
-  char str[(int)strlen(redirectUri)];
-  const gchar *copy = strncpy(str, (char *)uri, (int)strlen(redirectUri));
+  char str[(int)strlen(redirectUrl)];
+  const gchar *copy = strncpy(str, (char *)uri, (int)strlen(redirectUrl));
 
-  bool matching = strcmp(copy, redirectUri) == 0;
+  bool matching = strcmp(copy, redirectUrl) == 0;
 
   if (event == WEBKIT_LOAD_FINISHED && matching)
   {
-    const gchar *callbackUri = (gchar *)webkit_web_view_get_uri(view);
-    g_autoptr(FlValue) result = fl_value_new_string(callbackUri);
+
+    plugin->callbackUrl = (gchar *)webkit_web_view_get_uri(view);
+    g_autoptr(FlValue) result = fl_value_new_string(plugin->callbackUrl);
 
     fl_method_channel_invoke_method(plugin->method_channel, "getCallbackUrl",
                                     result, nullptr, nullptr, &plugin);
 
-    g_free(plugin->redirectUri);
+    g_free(plugin->redirectUrl);
+    g_signal_handler_disconnect(G_OBJECT(view), plugin->load_change_handler);
 
     gtk_window_close(GTK_WINDOW(plugin->popupWindow));
+  }
+}
+
+// Called if the user destroyed the window before sending the auth callback url.
+static void destroy(GtkWidget *widget, gpointer data)
+{
+  if (!plugin->callbackUrl)
+  {
+    fl_method_channel_invoke_method(plugin->method_channel, "getCallbackUrl",
+                                    nullptr, nullptr, nullptr, &plugin);
   }
 }
 
@@ -58,8 +72,8 @@ static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_
 
   if (strcmp(method, "signIn") == 0)
   {
-    FlView* view = fl_plugin_registrar_get_view(plugin->registrar);
-    GtkWindow* window = GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(view)));
+    FlView *view = fl_plugin_registrar_get_view(plugin->registrar);
+    GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(view)));
     GtkWidget *popup = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_transient_for(GTK_WINDOW(popup), GTK_WINDOW(window));
@@ -73,8 +87,8 @@ static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_
     FlValue *signInUriValue = fl_value_lookup_string(args, "signInUri");
     const gchar *signInUri = fl_value_get_string(signInUriValue);
 
-    FlValue *redirectUriValue = fl_value_lookup_string(args, "redirectUri");
-    const gchar *redirectUri = fl_value_get_string(redirectUriValue);
+    FlValue *redirectUrlValue = fl_value_lookup_string(args, "redirectUri");
+    const gchar *redirectUrl = fl_value_get_string(redirectUrlValue);
 
     FlValue *widthString = fl_value_lookup_string(args, "width");
     FlValue *heightString = fl_value_lookup_string(args, "height");
@@ -83,11 +97,13 @@ static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_
     int width = 920;
     int height = 720;
 
-    if(!fl_value_equal(widthString, dartNull)) {
+    if (!fl_value_equal(widthString, dartNull))
+    {
       width = fl_value_get_int(widthString);
     }
 
-    if(!fl_value_equal(heightString, dartNull)) {
+    if (!fl_value_equal(heightString, dartNull))
+    {
       height = fl_value_get_int(heightString);
     }
 
@@ -96,10 +112,11 @@ static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_
     gtk_window_set_position(GTK_WINDOW(popup), GTK_WIN_POS_MOUSE);
     gtk_window_set_default_size(GTK_WINDOW(popup), width, height);
 
-    plugin->redirectUri = g_strdup(redirectUri);
+    plugin->redirectUrl = g_strdup(redirectUrl);
     plugin->popupWindow = popup;
 
-    g_signal_connect(G_OBJECT(webview), "load-changed", G_CALLBACK(changed), NULL);
+    plugin->load_change_handler = g_signal_connect(G_OBJECT(webview), "load-changed", G_CALLBACK(changed), NULL);
+    g_signal_connect(G_OBJECT(popup), "destroy", G_CALLBACK(destroy), &plugin);
 
     gtk_widget_show_all(popup);
 
@@ -136,7 +153,7 @@ void desktop_webview_auth_plugin_register_with_registrar(FlPluginRegistrar *regi
   DesktopWebviewAuthPlugin *self = DESKTOP_WEBVIEW_AUTH_PLUGIN(
       g_object_new(desktop_webview_auth_plugin_get_type(), nullptr));
 
-  self->registrar =  FL_PLUGIN_REGISTRAR(g_object_ref(registrar));
+  self->registrar = FL_PLUGIN_REGISTRAR(g_object_ref(registrar));
 
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
 

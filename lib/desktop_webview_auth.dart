@@ -36,8 +36,12 @@ class DesktopWebviewAuth {
       _channel.setMethodCallHandler((event) async {
         if (event.method == 'getCallbackUrl') {
           final callbackUrl = event.arguments;
-          final authResult = await args.authorizeFromCallback(callbackUrl);
-          completer.complete(authResult);
+          if (event.arguments != null) {
+            final authResult = await args.authorizeFromCallback(callbackUrl);
+            completer.complete(authResult);
+          } else {
+            completer.complete(null);
+          }
         } else {
           completer.complete(null);
         }
