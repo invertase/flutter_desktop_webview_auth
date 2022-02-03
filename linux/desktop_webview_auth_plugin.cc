@@ -49,8 +49,7 @@ static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_da
 }
 
 // Called when a method call is received from Flutter.
-static void desktop_webview_auth_plugin_handle_method_call(
-    GtkWidget *window, FlMethodCall *method_call)
+static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_call)
 {
   g_autoptr(FlMethodResponse) response = nullptr;
 
@@ -59,11 +58,15 @@ static void desktop_webview_auth_plugin_handle_method_call(
 
   if (strcmp(method, "signIn") == 0)
   {
+    FlView* view = fl_plugin_registrar_get_view(plugin->registrar);
+    GtkWindow* window = GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(view)));
     GtkWidget *popup = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+
     gtk_window_set_transient_for(GTK_WINDOW(popup), GTK_WINDOW(window));
 
     GtkWidget *scrollview = gtk_scrolled_window_new(nullptr, nullptr);
     GtkWidget *webview = webkit_web_view_new();
+
     gtk_container_add(GTK_CONTAINER(scrollview), webview);
     gtk_container_add(GTK_CONTAINER(popup), scrollview);
 
@@ -73,10 +76,25 @@ static void desktop_webview_auth_plugin_handle_method_call(
     FlValue *redirectUriValue = fl_value_lookup_string(args, "redirectUri");
     const gchar *redirectUri = fl_value_get_string(redirectUriValue);
 
+    FlValue *widthString = fl_value_lookup_string(args, "width");
+    FlValue *heightString = fl_value_lookup_string(args, "height");
+    FlValue *dartNull = fl_value_new_null();
+
+    int width = 920;
+    int height = 720;
+
+    if(!fl_value_equal(widthString, dartNull)) {
+      width = fl_value_get_int(widthString);
+    }
+
+    if(!fl_value_equal(heightString, dartNull)) {
+      height = fl_value_get_int(heightString);
+    }
+
     webkit_web_view_load_uri(WEBKIT_WEB_VIEW(webview), signInUri);
 
     gtk_window_set_position(GTK_WINDOW(popup), GTK_WIN_POS_MOUSE);
-    gtk_window_set_default_size(GTK_WINDOW(popup), 980, 720);
+    gtk_window_set_default_size(GTK_WINDOW(popup), width, height);
 
     plugin->redirectUri = g_strdup(redirectUri);
     plugin->popupWindow = popup;
@@ -110,8 +128,7 @@ static void desktop_webview_auth_plugin_init(DesktopWebviewAuthPlugin *self) {}
 static void method_call_cb(FlMethodChannel *channel, FlMethodCall *method_call,
                            gpointer user_data)
 {
-  GtkWidget *window = GTK_WIDGET(user_data);
-  desktop_webview_auth_plugin_handle_method_call(window, method_call);
+  desktop_webview_auth_plugin_handle_method_call(method_call);
 }
 
 void desktop_webview_auth_plugin_register_with_registrar(FlPluginRegistrar *registrar)
@@ -119,10 +136,12 @@ void desktop_webview_auth_plugin_register_with_registrar(FlPluginRegistrar *regi
   DesktopWebviewAuthPlugin *self = DESKTOP_WEBVIEW_AUTH_PLUGIN(
       g_object_new(desktop_webview_auth_plugin_get_type(), nullptr));
 
+  self->registrar =  FL_PLUGIN_REGISTRAR(g_object_ref(registrar));
+
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
 
   self->method_channel =
-      fl_method_channel_new(fl_plugin_registrar_get_messenger(registrar),
+      fl_method_channel_new(fl_plugin_registrar_get_messenger(self->registrar),
                             "io.invertase.flutter/desktop_webview_auth",
                             FL_METHOD_CODEC(codec));
 

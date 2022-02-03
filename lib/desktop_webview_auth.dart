@@ -13,14 +13,20 @@ class DesktopWebviewAuth {
   static const _channel =
       MethodChannel('io.invertase.flutter/desktop_webview_auth');
 
-  static Future<String?> _invokeSignIn(ProviderArgs args) async {
+  static Future<String?> _invokeSignIn(ProviderArgs args,
+      [int? width, int? height]) async {
     return _channel.invokeMethod<String>(
       'signIn',
-      await args.toJson(),
+      {
+        'width': width?.toInt(),
+        'height': height?.toInt(),
+        ...await args.toJson()
+      },
     );
   }
 
-  static Future<AuthResult?> signIn(ProviderArgs args) async {
+  static Future<AuthResult?> signIn(ProviderArgs args,
+      {int? width, int? height}) async {
     /// Future will complete once there's a
     final completer = Completer<AuthResult?>();
 
@@ -38,7 +44,7 @@ class DesktopWebviewAuth {
       });
     }
 
-    final callbackUrl = await _invokeSignIn(args);
+    final callbackUrl = await _invokeSignIn(args, width, height);
 
     /// On macOS we get the callback by invoking `signIn` method.
     if (Platform.isMacOS) {
