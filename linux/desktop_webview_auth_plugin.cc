@@ -22,6 +22,7 @@ struct _DesktopWebviewAuthPlugin
   gchar *redirectUrl;
   gchar *callbackUrl;
   GtkWidget *popupWindow;
+  WebKitWebContext *context;
 };
 
 G_DEFINE_TYPE(DesktopWebviewAuthPlugin, desktop_webview_auth_plugin, g_object_get_type())
@@ -38,6 +39,7 @@ static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_da
 
   if (event == WEBKIT_LOAD_FINISHED && matching)
   {
+    webkit_web_context_clear_cache (plugin->context);
 
     plugin->callbackUrl = (gchar *)webkit_web_view_get_uri(view);
     g_autoptr(FlValue) result = fl_value_new_string(plugin->callbackUrl);
@@ -79,7 +81,9 @@ static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_
     gtk_window_set_transient_for(GTK_WINDOW(popup), GTK_WINDOW(window));
 
     GtkWidget *scrollview = gtk_scrolled_window_new(nullptr, nullptr);
-    GtkWidget *webview = webkit_web_view_new();
+
+    plugin->context = webkit_web_context_new ();
+    GtkWidget *webview = webkit_web_view_new_with_context (plugin->context);
 
     gtk_container_add(GTK_CONTAINER(scrollview), webview);
     gtk_container_add(GTK_CONTAINER(popup), scrollview);
