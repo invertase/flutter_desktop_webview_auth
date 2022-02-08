@@ -11,8 +11,6 @@
   (G_TYPE_CHECK_INSTANCE_CAST((obj), desktop_webview_auth_plugin_get_type(), \
                               DesktopWebviewAuthPlugin))
 
-DesktopWebviewAuthPlugin *plugin;
-
 struct _DesktopWebviewAuthPlugin
 {
   GObject parent_instance;
@@ -29,6 +27,8 @@ G_DEFINE_TYPE(DesktopWebviewAuthPlugin, desktop_webview_auth_plugin, g_object_ge
 
 static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_data)
 {
+  DesktopWebviewAuthPlugin* plugin = DESKTOP_WEBVIEW_AUTH_PLUGIN(user_data);
+
   const gchar *uri = webkit_web_view_get_uri(view);
   const gchar *redirectUrl = plugin->redirectUrl;
 
@@ -45,7 +45,7 @@ static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_da
     g_autoptr(FlValue) result = fl_value_new_string(plugin->callbackUrl);
 
     fl_method_channel_invoke_method(plugin->method_channel, "getCallbackUrl",
-                                    result, nullptr, nullptr, &plugin);
+                                    result, nullptr, nullptr, user_data);
 
     g_free(plugin->redirectUrl);
     g_signal_handler_disconnect(G_OBJECT(view), plugin->load_change_handler);
@@ -55,18 +55,22 @@ static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_da
 }
 
 // Called if the user destroyed the window before sending the auth callback url.
-static void destroy(GtkWidget *widget, gpointer data)
+static void destroy(GtkWidget *widget, gpointer user_data)
 {
+  DesktopWebviewAuthPlugin* plugin = DESKTOP_WEBVIEW_AUTH_PLUGIN(user_data);
+
   if (!plugin->callbackUrl)
   {
     fl_method_channel_invoke_method(plugin->method_channel, "getCallbackUrl",
-                                    nullptr, nullptr, nullptr, &plugin);
+                                    nullptr, nullptr, nullptr, user_data);
   }
 }
 
 // Called when a method call is received from Flutter.
-static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_call)
+static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_call, gpointer user_data)
 {
+  DesktopWebviewAuthPlugin* plugin = DESKTOP_WEBVIEW_AUTH_PLUGIN(user_data);
+
   g_autoptr(FlMethodResponse) response = nullptr;
 
   const gchar *method = fl_method_call_get_name(method_call);
@@ -119,8 +123,8 @@ static void desktop_webview_auth_plugin_handle_method_call(FlMethodCall *method_
     plugin->redirectUrl = g_strdup(redirectUrl);
     plugin->popupWindow = popup;
 
-    plugin->load_change_handler = g_signal_connect(G_OBJECT(webview), "load-changed", G_CALLBACK(changed), NULL);
-    g_signal_connect(G_OBJECT(popup), "destroy", G_CALLBACK(destroy), &plugin);
+    plugin->load_change_handler = g_signal_connect(G_OBJECT(webview), "load-changed", G_CALLBACK(changed), user_data);
+    g_signal_connect(G_OBJECT(popup), "destroy", G_CALLBACK(destroy), user_data);
 
     gtk_widget_show_all(popup);
 
@@ -149,7 +153,7 @@ static void desktop_webview_auth_plugin_init(DesktopWebviewAuthPlugin *self) {}
 static void method_call_cb(FlMethodChannel *channel, FlMethodCall *method_call,
                            gpointer user_data)
 {
-  desktop_webview_auth_plugin_handle_method_call(method_call);
+  desktop_webview_auth_plugin_handle_method_call(method_call, user_data);
 }
 
 void desktop_webview_auth_plugin_register_with_registrar(FlPluginRegistrar *registrar)
@@ -170,6 +174,5 @@ void desktop_webview_auth_plugin_register_with_registrar(FlPluginRegistrar *regi
                                             g_object_ref(self),
                                             g_object_unref);
 
-  plugin = self;
-  g_object_unref(plugin);
+  g_object_unref(self);
 }
