@@ -1,14 +1,18 @@
-import 'package:desktop_webview_auth/twitter.dart';
 import 'package:flutter/material.dart';
+import 'package:googleapis/identitytoolkit/v3.dart';
+import 'package:googleapis_auth/googleapis_auth.dart';
+
 import 'package:desktop_webview_auth/desktop_webview_auth.dart';
 import 'package:desktop_webview_auth/google.dart';
 import 'package:desktop_webview_auth/facebook.dart';
+import 'package:desktop_webview_auth/twitter.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 typedef SignInCallback = Future<void> Function();
+const String apiKey = 'AIzaSyAgUhHU8wSJgO5MVNy95tMT07NEjzMOfz0';
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -16,15 +20,31 @@ class MyApp extends StatelessWidget {
   SignInCallback signInWithArgs(BuildContext context, ProviderArgs args) =>
       () async {
         final result = await DesktopWebviewAuth.signIn(args);
-        notify(context, result);
+        notify(context, result?.accessToken);
       };
 
-  void notify(BuildContext context, AuthResult? result) {
+  void notify(BuildContext context, String? result) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('access token: ${result?.accessToken}'),
+        content: Text('access token: $result'),
       ),
     );
+  }
+
+  getRecaptchaVerification(BuildContext context) async {
+    final identityToolkit =
+        IdentityToolkitApi(clientViaApiKey(apiKey)).relyingparty;
+    final recaptchaResponse = await identityToolkit.getRecaptchaParam();
+    final result = await DesktopWebviewAuth.recaptchaVerification(
+      RecaptchaArgs(
+        siteKey: recaptchaResponse.recaptchaSiteKey!,
+        siteToken: recaptchaResponse.recaptchaStoken!,
+      ),
+      height: 600,
+      width: 600,
+    );
+
+    notify(context, result?.verificationId);
   }
 
   @override
@@ -77,6 +97,9 @@ class MyApp extends StatelessWidget {
                   ),
                 ),
               ),
+              ElevatedButton(
+                  child: const Text('Recaptcha Verification'),
+                  onPressed: () => getRecaptchaVerification(context)),
             ];
 
             return Center(
