@@ -10,13 +10,22 @@ This package enables Firebase OAuth on desktop via webview
 
 ## Installation
 
-Add dependency
+### Linux setup
+
+ To display webview on Linux, `libwebkit2gtk-4.0-dev` is used, if you don't have it already installed:
+ ```bash
+ apt install libwebkit2gtk-4.0-dev
+ ```
+
+ Additionally, if Flutter is installed using snap, you might face issues compiling the app, to fix you would need to uninstall the snap version and [install Flutter manually on Linux](https://docs.flutter.dev/get-started/install/linux#install-flutter-manually).
+
+### Add dependency
 
 ```bash
 flutter pub add desktop_webview_auth
 ```
 
-Imports
+### Imports
 
 ```dart
 import 'package:desktop_webview_auth/desktop_webview_auth.dart';
