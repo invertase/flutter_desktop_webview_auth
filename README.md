@@ -9,19 +9,25 @@ This package enables Firebase OAuth on desktop via webview
 - Twitter
 
 ## Installation
+
 ### macOS setup
 
-The recaptcha verification flow is done on the local server, and it requires that the app has the following entitlement: `com.apple.security.network.server`.
-To add it via Xcode, open `macos` folder using Xcode, then from the Runner target in **Signing & Capabilities** tab, check **Incoming Connections (Server)** box.
+The recaptcha verification flow is done on the local server, and it requires that the app has the following in the `Release.entitlements`:
+
+```xml
+<key>com.apple.security.network.server</key>
+<true/>
+```
 
 ### Linux setup
 
- To display webview on Linux, `libwebkit2gtk-4.0-dev` is used, if you don't have it already installed:
- ```bash
- apt install libwebkit2gtk-4.0-dev
- ```
+To display webview on Linux, `libwebkit2gtk-4.0-dev` is used, if you don't have it already installed:
 
- Additionally, if Flutter is installed using snap, you might face issues compiling the app, to fix you would need to uninstall the snap version and [install Flutter manually on Linux](https://docs.flutter.dev/get-started/install/linux#install-flutter-manually).
+```bash
+apt install libwebkit2gtk-4.0-dev
+```
+
+Additionally, if Flutter is installed using snap, you might face issues compiling the app, to fix you would need to uninstall the snap version and [install Flutter manually on Linux](https://docs.flutter.dev/get-started/install/linux#install-flutter-manually).
 
 ### Add dependency
 
