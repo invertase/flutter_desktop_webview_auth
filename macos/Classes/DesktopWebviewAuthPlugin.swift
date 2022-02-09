@@ -10,9 +10,10 @@ import WebKit
 public class WebviewController: NSViewController, WKNavigationDelegate {
     var width: CGFloat?
     var height: CGFloat?
-    var redirectUri: String?
+    var targetUriFragment: String?
     var result: FlutterResult?
     var onComplete: ((String?) -> Void)?
+    var onDismissed: (() -> Void)?
     
     public override func loadView() {
         self.title = ""
@@ -51,7 +52,7 @@ public class WebviewController: NSViewController, WKNavigationDelegate {
         
         let uriString = url.absoluteString
         
-        if (uriString.starts(with: redirectUri!)) {
+        if uriString.contains(targetUriFragment!) {
             decisionHandler(.cancel)
             onComplete!(uriString)
             dismiss(self)
@@ -61,11 +62,13 @@ public class WebviewController: NSViewController, WKNavigationDelegate {
     }
     
     public override func viewDidDisappear() {
-        onComplete!(nil)
+        onDismissed!();
     }
 }
 
 public class DesktopWebviewAuthPlugin: NSObject, FlutterPlugin {
+    var channel: FlutterMethodChannel?
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
             name: "io.invertase.flutter/desktop_webview_auth",
@@ -73,6 +76,8 @@ public class DesktopWebviewAuthPlugin: NSObject, FlutterPlugin {
         )
         
         let instance = DesktopWebviewAuthPlugin()
+        instance.channel = channel
+        
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     
@@ -80,31 +85,78 @@ public class DesktopWebviewAuthPlugin: NSObject, FlutterPlugin {
         switch call.method {
         case "signIn":
             let args = call.arguments as! NSDictionary
+
             signIn(
-                signInUri: args["signInUri"] as! String,
+                signInUrl: args["signInUri"] as! String,
                 redirectUri: args["redirectUri"] as! String,
                 width: args["width"] as? CGFloat,
-                height: args["height"] as? CGFloat,
-                result: result
+                height: args["height"] as? CGFloat
             )
+
+            result(nil)
+            break
+        case "recaptchaVerification":
+            let args = call.arguments as! NSDictionary
+
+            verifyRecaptcha(
+                url: args["redirectUrl"] as! String,
+                width: args["width"] as? CGFloat,
+                height: args["height"] as? CGFloat
+            )
+
+            result(nil)
+            break
         default:
             result(FlutterMethodNotImplemented)
         }
     }
     
-    func signIn(signInUri: String, redirectUri: String, width: CGFloat?, height: CGFloat?, result: @escaping FlutterResult) {
+    func signIn(signInUrl: String, redirectUri: String, width: CGFloat?, height: CGFloat?) {
+        _openWebview(
+            url: signInUrl,
+            flow: "signIn",
+            targetUriFragment: redirectUri,
+            width: width,
+            height: height
+        )
+    }
+    
+    
+    func verifyRecaptcha(url: String, width: CGFloat?, height: CGFloat?) {
+        _openWebview(
+            url: url,
+            flow: "recaptchaVerification",
+            targetUriFragment: "response",
+            width: width,
+            height: height
+        )
+    }
+    
+    func _openWebview(url: String, flow: String, targetUriFragment: String, width: CGFloat?,
+                      height: CGFloat?) {
+
         let appWindow = NSApplication.shared.windows.first!
         let webviewController = WebviewController()
         
-        webviewController.redirectUri = redirectUri
+        webviewController.targetUriFragment = targetUriFragment
         webviewController.width = width
         webviewController.height = height
+
         webviewController.onComplete = { (callbackUrl) -> Void in
-            result(callbackUrl)
+            let arguments = [
+                "flow": flow,
+                "url": callbackUrl
+            ]
+            
+            self.channel!.invokeMethod("onCallbackUrlReceived", arguments: arguments)
         }
         
-        webviewController.loadUrl(signInUri)
-        
+        webviewController.onDismissed = { () -> Void in
+            self.channel!.invokeMethod("onDismissed", arguments: ["flow": flow])
+            
+        }
+
+        webviewController.loadUrl(url)
         appWindow.contentViewController?.presentAsModalWindow(webviewController)
     }
 }
