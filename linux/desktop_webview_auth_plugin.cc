@@ -62,8 +62,8 @@ static void changed(WebKitWebView *view, WebKitLoadEvent event, gpointer user_da
     gchar *callbackUrl = (gchar *)webkit_web_view_get_uri(view);
     g_autoptr(FlValue) result = fl_value_new_map();
 
-    fl_value_set_string_take(value, "url", fl_value_new_string(callbackUrl));
-    fl_value_set_string_take(value, "flow", fl_value_new_string(plugin->method_name));
+    fl_value_set_string_take(result, "url", fl_value_new_string(callbackUrl));
+    fl_value_set_string_take(result, "flow", fl_value_new_string(plugin->method_name));
 
     fl_method_channel_invoke_method(plugin->method_channel, "onCallbackUrlReceived",
                                     result, nullptr, nullptr, nullptr);
@@ -80,10 +80,10 @@ static void destroy(GtkWidget *widget, gpointer user_data)
   DesktopWebviewAuthPlugin *plugin = DESKTOP_WEBVIEW_AUTH_PLUGIN(user_data);
 
   g_autoptr(FlValue) result = fl_value_new_map();
-  fl_value_set_string_take(value, "flow", fl_value_new_string(plugin->method_name));
+  fl_value_set_string_take(result, "flow", fl_value_new_string(plugin->method_name));
 
   fl_method_channel_invoke_method(plugin->method_channel, "onDismissed",
-                                  value, nullptr, nullptr, user_data);
+                                  result, nullptr, nullptr, user_data);
 
   clean(user_data);
 }
