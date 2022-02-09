@@ -9,6 +9,10 @@ This package enables Firebase OAuth on desktop via webview
 - Twitter
 
 ## Installation
+### macOS setup
+
+The recaptcha verification flow is done on the local server, and it requires that the app has the following entitlement: `com.apple.security.network.server`.
+To add it via Xcode, open `macos` folder using Xcode, then from the Runner target in **Signing & Capabilities** tab, check **Incoming Connections (Server)** box.
 
 ### Linux setup
 
