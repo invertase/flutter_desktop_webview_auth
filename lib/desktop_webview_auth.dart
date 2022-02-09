@@ -1,159 +1,175 @@
 import 'dart:async';
-import 'dart:developer';
-import 'dart:io';
 
+import 'package:desktop_webview_auth/src/jsonable.dart';
+import 'package:desktop_webview_auth/src/platform_response.dart';
 import 'package:desktop_webview_auth/src/recaptcha_args.dart';
 import 'package:desktop_webview_auth/src/recaptcha_result.dart';
+import 'package:desktop_webview_auth/src/recaptcha_verification_server.dart';
 import 'package:flutter/services.dart';
 
 import 'src/auth_result.dart';
 import 'src/provider_args.dart';
-import 'src/recaptcha_html.dart';
 
 export 'src/provider_args.dart';
-export 'src/recaptcha_args.dart';
+export 'src/recaptcha_args.dart' show RecaptchaArgs;
 export 'src/auth_result.dart';
 export 'src/recaptcha_result.dart';
 
+const _channelName = 'io.invertase.flutter/desktop_webview_auth';
+
 class DesktopWebviewAuth {
-  static const _channel =
-      MethodChannel('io.invertase.flutter/desktop_webview_auth');
+  static final _channel = const MethodChannel(_channelName)
+    ..setMethodCallHandler(_onMethodCall);
 
-  static Future<String?> _invokeSignIn(ProviderArgs args,
-      [int? width, int? height]) async {
-    return _channel.invokeMethod<String>(
-      'signIn',
-      {
-        'width': width?.toInt(),
-        'height': height?.toInt(),
-        ...await args.toJson()
-      },
-    );
-  }
+  static late Completer<RecaptchaResult?> _recaptchaVerificationCompleter;
 
-  static Future<String?> _invokeRecaptchaVerification(RecaptchaArgs args,
-      [int? width, int? height]) async {
-    return _channel.invokeMethod<String>(
-      'recaptchaVerification',
-      {
-        'width': width?.toInt(),
-        'height': height?.toInt(),
-        ...await args.toJson()
-      },
-    );
-  }
+  static late ProviderArgs _args;
+  static late Completer<AuthResult?> _signInResultCompleter;
 
-  static Future<RecaptchaResult?> recaptchaVerification(RecaptchaArgs args,
-      {int? width, int? height}) async {
-    final completer = Completer<RecaptchaResult?>();
+  static _invokeMethod<T>({
+    required String name,
+    required Jsonable args,
+    num? width,
+    num? height,
+  }) async {
+    final _args = await args.toJson();
 
-    await args.getLocalServer();
-
-    // Start listening to the local server.
-    args.sub?.stream.listen((HttpRequest request) async {
-      final uri = request.requestedUri;
-
-      if (uri.path == '/' && uri.queryParameters.isEmpty) {
-        await _sendDataToHTTP(
-          request,
-          recaptchaHTML(
-            args.siteKey,
-            args.siteToken,
-            // theme: parameters['theme'],
-            // size: parameters['size'],
-          ),
-        );
-      } else if (uri.query.contains('response')) {
-        await _sendDataToHTTP(
-          request,
-          responseHTML(
-            'Success',
-            'Successful verification!',
-          ),
-        );
-      } else if (uri.query.contains('error-code')) {
-        await _sendDataToHTTP(
-          request,
-          responseHTML(
-            'Captcha check failed.',
-            uri.queryParameters['error-code']!,
-          ),
-        );
-
-        completer.completeError((e) {
-          return Exception(uri.queryParameters['error-code']);
-        });
-      }
+    return _channel.invokeMethod<T>(name, {
+      if (width != null) 'width': width.toInt(),
+      if (height != null) 'height': height.toInt(),
+      ..._args,
     });
-
-    _channel.setMethodCallHandler((event) async {
-      if (event.method == 'getCallbackUrl') {
-        final callbackUrl = event.arguments;
-        if (event.arguments != null) {
-          completer.complete(RecaptchaResult(
-              Uri.parse(callbackUrl).queryParameters['response']));
-        } else {
-          completer.complete(null);
-        }
-      } else {
-        completer.complete(null);
-      }
-    });
-
-    await _invokeRecaptchaVerification(args, width, height);
-
-    return completer.future
-        .whenComplete(args.closeLocalServer)
-        .timeout(const Duration(seconds: 60));
   }
 
-  static Future<void> _sendDataToHTTP(
-    HttpRequest request,
-    Object data, [
-    String contentType = 'text/html',
+  static Future<void> _invokeSignIn(
+    ProviderArgs args, [
+    int? width,
+    int? height,
   ]) async {
-    request.response
-      ..statusCode = 200
-      ..headers.set('content-type', contentType)
-      ..write(data);
-    await request.response.close();
+    return await _invokeMethod<void>(
+      name: 'signIn',
+      args: args,
+      width: width,
+      height: height,
+    );
   }
 
-  static Future<AuthResult?> signIn(ProviderArgs args,
-      {int? width, int? height}) async {
-    /// Future will complete once there's a
-    final completer = Completer<AuthResult?>();
+  static Future<void> _invokeRecaptchaVerification(
+    RecaptchaArgs args, [
+    int? width,
+    int? height,
+  ]) async {
+    return _invokeMethod<void>(
+      name: 'recaptchaVerification',
+      args: args,
+      width: width,
+      height: height,
+    );
+  }
 
-    /// On Linux, the callback comes back by a native invocation of the
-    /// method `getCallbackUrl`.
-    if (Platform.isLinux) {
-      _channel.setMethodCallHandler((event) async {
-        if (event.method == 'getCallbackUrl') {
-          final callbackUrl = event.arguments;
-          if (event.arguments != null) {
-            final authResult = await args.authorizeFromCallback(callbackUrl);
-            completer.complete(authResult);
-          } else {
-            completer.complete(null);
-          }
-        } else {
-          completer.complete(null);
+  static Future<void> _onMethodCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onCallbackUrlReceived':
+        final args = call.arguments.cast<String, dynamic>();
+        final res = PlatformResponse.fromJson(args);
+
+        if (res.flow == 'signIn') {
+          await _onSignInCallbackUrlReceived(res.url);
+        } else if (res.flow == 'recaptchaVerification') {
+          _onRecaptchaCallbackUrlReceived(res.url);
         }
-      });
+        break;
+
+      case 'onDismissed':
+        final args = call.arguments.cast<String, dynamic>();
+        final res = PlatformResponse.fromJson(args);
+
+        if (res.flow == 'signIn') {
+          _onDismissed(_signInResultCompleter);
+        } else if (res.flow == 'recaptchaVerification') {
+          _onDismissed(_recaptchaVerificationCompleter);
+        }
+        break;
+
+      default:
+        throw UnimplementedError('${call.method} is not implemented');
     }
+  }
 
-    final callbackUrl = await _invokeSignIn(args, width, height);
+  static void _onDismissed(Completer completer) {
+    if (completer.isCompleted) return;
+    completer.complete();
+  }
 
-    /// On macOS we get the callback by invoking `signIn` method.
-    if (Platform.isMacOS) {
-      if (callbackUrl == null) {
-        completer.complete(null);
-      } else {
-        final authResult = await args.authorizeFromCallback(callbackUrl);
-        completer.complete(authResult);
+  static void _onRecaptchaCallbackUrlReceived(String? callbackUrl) {
+    if (callbackUrl == null) {
+      _recaptchaVerificationCompleter.complete(null);
+    } else {
+      final parsedUri = Uri.parse(callbackUrl);
+      final response = parsedUri.queryParameters['response'];
+      final result = RecaptchaResult(response);
+      _recaptchaVerificationCompleter.complete(result);
+    }
+  }
+
+  static Future<void> _onSignInCallbackUrlReceived(String? callbackUrl) async {
+    if (callbackUrl == null) {
+      _signInResultCompleter.complete(null);
+    } else {
+      try {
+        final authResult = await _args.authorizeFromCallback(callbackUrl);
+        _signInResultCompleter.complete(authResult);
+      } catch (e) {
+        _signInResultCompleter.complete(null);
       }
     }
+  }
 
-    return completer.future;
+  static Future<RecaptchaResult?> recaptchaVerification(
+    RecaptchaArgs args, {
+    int? width,
+    int? height,
+  }) async {
+    _recaptchaVerificationCompleter = Completer<RecaptchaResult?>();
+    final server = RecaptchaVerificationServer(args);
+
+    server.onError = (e) {
+      _recaptchaVerificationCompleter.completeError(e);
+    };
+
+    await server.start();
+
+    final invokeArgs = RecaptchaVerificationInvokeArgs.fromArgs(
+      args,
+      server.url,
+    );
+
+    await _invokeRecaptchaVerification(invokeArgs, width, height);
+
+    return _recaptchaVerificationCompleter.future
+        .whenComplete(server.close)
+        .timeout(
+      const Duration(seconds: 60),
+      onTimeout: () {
+        server.close();
+        return null;
+      },
+    );
+  }
+
+  static Future<AuthResult?> signIn(
+    ProviderArgs args, {
+    int? width,
+    int? height,
+  }) async {
+    _args = args;
+    _signInResultCompleter = Completer<AuthResult?>();
+
+    try {
+      await _invokeSignIn(args, width, height);
+      return _signInResultCompleter.future;
+    } catch (_) {
+      return null;
+    }
   }
 }

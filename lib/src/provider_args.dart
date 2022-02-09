@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 import 'auth_result.dart';
+import 'jsonable.dart';
 
-abstract class ProviderArgs {
+abstract class ProviderArgs implements Jsonable {
   String get redirectUri;
   String get host;
   String get path;
 
   Map<String, String> buildQueryParameters();
 
-  Future<String> buildSignInUri() async {
+  Future<String> buildSignInUri() {
     final uri = Uri(
       scheme: 'https',
       host: host,
@@ -40,9 +41,12 @@ abstract class ProviderArgs {
     throw Exception('No access token found');
   }
 
+  @override
   Future<Map<String, String>> toJson() async {
+    final signInUri = await buildSignInUri();
+
     return {
-      'signInUri': await buildSignInUri(),
+      'signInUri': signInUri,
       'redirectUri': redirectUri,
     };
   }

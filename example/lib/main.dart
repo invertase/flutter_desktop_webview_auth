@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'package:googleapis/identitytoolkit/v3.dart';
 import 'package:googleapis_auth/googleapis_auth.dart';
@@ -13,6 +15,15 @@ void main() {
 
 typedef SignInCallback = Future<void> Function();
 const String apiKey = 'AIzaSyAgUhHU8wSJgO5MVNy95tMT07NEjzMOfz0';
+
+const GOOGLE_CLIENT_ID =
+    '448618578101-sg12d2qin42cpr00f8b0gehs5s7inm0v.apps.googleusercontent.com';
+const REDIRECT_URI =
+    'https://react-native-firebase-testing.firebaseapp.com/__/auth/handler';
+const TWITTER_API_KEY = 'YEXSiWv5UeCHyy0c61O2LBC3B';
+const TWITTER_API_SECRET_KEY =
+    'DOd9dCCRFgtnqMDQT7A68YuGZtvcO4WP1mEFS4mEJAUooM4yaE';
+const FACEBOOK_CLIENT_ID = '128693022464535';
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -31,15 +42,20 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  getRecaptchaVerification(BuildContext context) async {
-    final identityToolkit =
-        IdentityToolkitApi(clientViaApiKey(apiKey)).relyingparty;
-    final recaptchaResponse = await identityToolkit.getRecaptchaParam();
+  Future<void> getRecaptchaVerification(BuildContext context) async {
+    final client = clientViaApiKey(apiKey);
+    final identityToolkit = IdentityToolkitApi(client);
+    final res = identityToolkit.relyingparty;
+
+    final recaptchaResponse = await res.getRecaptchaParam();
+
+    final args = RecaptchaArgs(
+      siteKey: recaptchaResponse.recaptchaSiteKey!,
+      siteToken: recaptchaResponse.recaptchaStoken!,
+    );
+
     final result = await DesktopWebviewAuth.recaptchaVerification(
-      RecaptchaArgs(
-        siteKey: recaptchaResponse.recaptchaSiteKey!,
-        siteToken: recaptchaResponse.recaptchaStoken!,
-      ),
+      args,
       height: 600,
       width: 600,
     );
@@ -66,10 +82,8 @@ class MyApp extends StatelessWidget {
                 onPressed: signInWithArgs(
                   context,
                   GoogleSignInArgs(
-                    clientId:
-                        '448618578101-sg12d2qin42cpr00f8b0gehs5s7inm0v.apps.googleusercontent.com',
-                    redirectUri:
-                        'https://react-native-firebase-testing.firebaseapp.com/__/auth/handler',
+                    clientId: GOOGLE_CLIENT_ID,
+                    redirectUri: REDIRECT_URI,
                   ),
                 ),
               ),
@@ -78,11 +92,9 @@ class MyApp extends StatelessWidget {
                 onPressed: signInWithArgs(
                   context,
                   TwitterSignInArgs(
-                    apiKey: 'YEXSiWv5UeCHyy0c61O2LBC3B',
-                    apiSecretKey:
-                        'DOd9dCCRFgtnqMDQT7A68YuGZtvcO4WP1mEFS4mEJAUooM4yaE',
-                    redirectUri:
-                        'https://react-native-firebase-testing.firebaseapp.com/__/auth/handler',
+                    apiKey: TWITTER_API_KEY,
+                    apiSecretKey: TWITTER_API_SECRET_KEY,
+                    redirectUri: REDIRECT_URI,
                   ),
                 ),
               ),
@@ -91,15 +103,15 @@ class MyApp extends StatelessWidget {
                 onPressed: signInWithArgs(
                   context,
                   FacebookSignInArgs(
-                    clientId: '128693022464535',
-                    redirectUri:
-                        'https://react-native-firebase-testing.firebaseapp.com/__/auth/handler',
+                    clientId: FACEBOOK_CLIENT_ID,
+                    redirectUri: REDIRECT_URI,
                   ),
                 ),
               ),
               ElevatedButton(
-                  child: const Text('Recaptcha Verification'),
-                  onPressed: () => getRecaptchaVerification(context)),
+                child: const Text('Recaptcha Verification'),
+                onPressed: () => getRecaptchaVerification(context),
+              ),
             ];
 
             return Center(

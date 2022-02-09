@@ -1,7 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
-class RecaptchaArgs {
+import 'package:flutter/foundation.dart';
+
+import 'jsonable.dart';
+
+class RecaptchaArgs implements Jsonable {
   final String siteKey;
   final String siteToken;
 
@@ -10,45 +13,40 @@ class RecaptchaArgs {
     required this.siteToken,
   });
 
-  String? _redirectUrl;
-
-  /// [redirectUrl] is set after starting to listen to [getLocalServer].
-  /// If called before [getLocalServer], will be `null`.
-  String? get redirectUrl => _redirectUrl;
-
-  HttpServer? _server;
-
-  StreamController<HttpRequest>? sub;
-
-  Future<String?> getLocalServer() async {
-    if (_server == null) {
-      sub = StreamController<HttpRequest>();
-
-      final address = InternetAddress.loopbackIPv4;
-      _server = await HttpServer.bind(address, 0);
-
-      final port = _server!.port;
-
-      _server!.listen(sub?.add);
-
-      _redirectUrl = 'http://${address.host}:$port';
-    }
-
-    return _redirectUrl;
-  }
-
-  void closeLocalServer() {
-    sub?.close();
-
-    _server?.close();
-    _server = null;
-  }
-
-  Future<Map<String, String?>> toJson() async {
-    return {
+  @override
+  Future<Map<String, String?>> toJson() {
+    return SynchronousFuture({
       'siteKey': siteKey,
       'siteToken': siteToken,
-      'redirectUrl': _redirectUrl,
-    };
+    });
+  }
+}
+
+class RecaptchaVerificationInvokeArgs extends RecaptchaArgs {
+  final String redirectUrl;
+
+  RecaptchaVerificationInvokeArgs({
+    required String siteKey,
+    required String siteToken,
+    required this.redirectUrl,
+  }) : super(siteKey: siteKey, siteToken: siteToken);
+
+  factory RecaptchaVerificationInvokeArgs.fromArgs(
+    RecaptchaArgs args,
+    String redirectUrl,
+  ) {
+    return RecaptchaVerificationInvokeArgs(
+      siteKey: args.siteKey,
+      siteToken: args.siteToken,
+      redirectUrl: redirectUrl,
+    );
+  }
+
+  @override
+  Future<Map<String, String?>> toJson() async {
+    return SynchronousFuture({
+      ...await super.toJson(),
+      'redirectUrl': redirectUrl,
+    });
   }
 }
