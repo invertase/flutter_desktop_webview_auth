@@ -113,12 +113,12 @@ static void open_webview(FlValue *args, gpointer user_data)
   int width = 920;
   int height = 720;
 
-  if (!fl_value_equal(widthString, dartNull))
+  if (widthString != nullptr && !fl_value_equal(widthString, dartNull))
   {
     width = fl_value_get_int(widthString);
   }
 
-  if (!fl_value_equal(heightString, dartNull))
+  if (heightString != nullptr &&!fl_value_equal(heightString, dartNull))
   {
     height = fl_value_get_int(heightString);
   }
