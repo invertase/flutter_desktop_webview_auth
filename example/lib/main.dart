@@ -84,7 +84,6 @@ class MyApp extends StatelessWidget {
                   GoogleSignInArgs(
                     clientId: GOOGLE_CLIENT_ID,
                     redirectUri: REDIRECT_URI,
-                    responseType: 'token id_token',
                   ),
                 ),
               ),
