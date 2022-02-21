@@ -60,8 +60,8 @@ class TwitterSignInArgs extends ProviderArgs {
     final decodedRes = Uri.splitQueryString(res);
 
     return AuthResult(
-      decodedRes['oauth_token']!,
-      decodedRes['oauth_token_secret'],
+      accessToken: decodedRes['oauth_token'],
+      tokenSecret: decodedRes['oauth_token_secret'],
     );
   }
 

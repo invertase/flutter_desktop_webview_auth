@@ -31,13 +31,13 @@ class MyApp extends StatelessWidget {
   SignInCallback signInWithArgs(BuildContext context, ProviderArgs args) =>
       () async {
         final result = await DesktopWebviewAuth.signIn(args);
-        notify(context, result?.accessToken);
+        notify(context, result?.toString());
       };
 
   void notify(BuildContext context, String? result) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('access token: $result'),
+        content: Text('Result: $result'),
       ),
     );
   }
@@ -84,6 +84,7 @@ class MyApp extends StatelessWidget {
                   GoogleSignInArgs(
                     clientId: GOOGLE_CLIENT_ID,
                     redirectUri: REDIRECT_URI,
+                    responseType: 'token id_token',
                   ),
                 ),
               ),

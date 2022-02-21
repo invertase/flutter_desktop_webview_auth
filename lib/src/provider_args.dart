@@ -33,8 +33,12 @@ abstract class ProviderArgs implements Jsonable {
       args = uri.queryParameters;
     }
 
-    if (args.containsKey('access_token')) {
-      final result = AuthResult(args['access_token']!);
+    if (args.containsKey('access_token') || args.containsKey('id_token')) {
+      final result = AuthResult(
+        accessToken: args['access_token'],
+        idToken: args['id_token'],
+      );
+
       return SynchronousFuture(result);
     }
 
