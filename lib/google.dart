@@ -22,7 +22,7 @@ class GoogleSignInArgs extends ProviderArgs {
     required this.redirectUri,
     this.scope = _defaultSignInScope,
     this.immediate = false,
-    this.responseType = 'token',
+    this.responseType = 'token id_token',
   });
 
   @override
