@@ -117,7 +117,7 @@ class DesktopWebviewAuth {
       _signInResultCompleter.complete(null);
     } else {
       try {
-        final authResult = await _args.authorizeFromCallback(callbackUrl);
+        final authResult = _args.authorizeFromCallback(callbackUrl);
         _signInResultCompleter.complete(authResult);
       } catch (e) {
         _signInResultCompleter.complete(null);
