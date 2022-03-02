@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 set(PROJECT_NAME "desktop_webview_auth")
 
+set(WIL_VERSION "1.0.211019.2")
 set(WEBVIEW_VERSION "1.0.1108.44")
 
 project(${PROJECT_NAME} LANGUAGES CXX)
@@ -31,6 +32,7 @@ endif()
 add_custom_target(DEPENDENCIES_DOWNLOAD ALL)
 add_custom_command(
   TARGET DEPENDENCIES_DOWNLOAD PRE_BUILD
+  COMMAND ${NUGET} install Microsoft.Windows.ImplementationLibrary -Version ${WIL_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
   COMMAND ${NUGET} install Microsoft.Web.WebView2 -Version ${WEBVIEW_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
   DEPENDS ${NUGET}
 )
@@ -43,6 +45,7 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE ${CMAKE_BINARY_DIR}/packages/Microsoft.Web.WebView2/build/native/Microsoft.Web.WebView2.targets)
+target_link_libraries(${PLUGIN_NAME} PRIVATE ${CMAKE_BINARY_DIR}/packages/Microsoft.Windows.ImplementationLibrary/build/native/Microsoft.Windows.ImplementationLibrary.targets)
 
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
