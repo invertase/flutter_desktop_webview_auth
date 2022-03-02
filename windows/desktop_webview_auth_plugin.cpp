@@ -87,16 +87,15 @@ void DesktopWebviewAuthPlugin::HandleMethodCall(
       GetWindowRect(view_->GetNativeWindow(), &rect);
 
       HWND hWnd = CreateWindowExA(
-          WS_EX_OVERLAPPEDWINDOW,
-          "WebView Window",
-          "",
+          WS_EX_OVERLAPPEDWINDOW,                        
+          "WebView Window",            
+          "",  
           WS_OVERLAPPEDWINDOW,
-          // Size and position
-          rect.top, rect.top, 980, 720,
+          (GetSystemMetrics(SM_CXSCREEN)/2) - (980/2), (GetSystemMetrics(SM_CYSCREEN)/2) - (720/2), 980, 720,
           view_->GetNativeWindow(),
-          nullptr,
-          wc.hInstance,
-          nullptr
+          NULL,
+          wc.hInstance, 
+          NULL
       );
 
       ShowWindow(hWnd, 1);
