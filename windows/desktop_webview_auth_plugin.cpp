@@ -21,6 +21,9 @@
 #include "WebView2.h"
 
 using namespace Microsoft::WRL;
+using flutter::EncodableList;
+using flutter::EncodableMap;
+using flutter::EncodableValue;
 
 // Pointer to WebViewController
 static wil::com_ptr<ICoreWebView2Controller> webviewController;
@@ -29,133 +32,151 @@ static wil::com_ptr<ICoreWebView2Controller> webviewController;
 static wil::com_ptr<ICoreWebView2> webviewWindow;
 
 namespace {
+	template <typename T>
+	std::optional<T> GetOptionalValue(const flutter::EncodableMap& map,
+		const std::string& key) {
+		const auto it = map.find(flutter::EncodableValue(key));
+		if (it != map.end()) {
+			const auto val = std::get_if<T>(&it->second);
+			if (val) {
+				return *val;
+			}
+		}
+		return std::nullopt;
+	}
 
-class DesktopWebviewAuthPlugin : public flutter::Plugin {
- public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
+	class DesktopWebviewAuthPlugin : public flutter::Plugin {
+	public:
+		static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
-  DesktopWebviewAuthPlugin(flutter::FlutterView* view);
+		DesktopWebviewAuthPlugin(flutter::FlutterView* view);
 
-  virtual ~DesktopWebviewAuthPlugin();
+		virtual ~DesktopWebviewAuthPlugin();
 
- private:
-  WNDCLASS wc = { };
+	private:
+		WNDCLASS wc = { };
 
-  std::unique_ptr<flutter::FlutterView> view_;
+		std::unique_ptr<flutter::FlutterView> view_;
 
-  // Called when a method is called on this plugin's channel from Dart.
-  void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-};
+		// Called when a method is called on this plugin's channel from Dart.
+		void HandleMethodCall(
+			const flutter::MethodCall<flutter::EncodableValue> &method_call,
+			std::unique_ptr<flutter::MethodResult<EncodableValue>> result);
+	};
 
-// static
-void DesktopWebviewAuthPlugin::RegisterWithRegistrar(
-    flutter::PluginRegistrarWindows *registrar) {
-  auto channel =
-      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "io.invertase.flutter/desktop_webview_auth",
-          &flutter::StandardMethodCodec::GetInstance());
+	// static
+	void DesktopWebviewAuthPlugin::RegisterWithRegistrar(
+		flutter::PluginRegistrarWindows *registrar) {
+		auto channel =
+			std::make_unique<flutter::MethodChannel<EncodableValue>>(
+				registrar->messenger(), "io.invertase.flutter/desktop_webview_auth",
+				&flutter::StandardMethodCodec::GetInstance());
 
-  auto plugin = std::make_unique<DesktopWebviewAuthPlugin>(registrar->GetView());
+		auto plugin = std::make_unique<DesktopWebviewAuthPlugin>(registrar->GetView());
 
-  channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
-        plugin_pointer->HandleMethodCall(call, std::move(result));
-      });
+		channel->SetMethodCallHandler(
+			[plugin_pointer = plugin.get()](const auto &call, auto result) {
+			plugin_pointer->HandleMethodCall(call, std::move(result));
+		});
 
-  registrar->AddPlugin(std::move(plugin));
-}
+		registrar->AddPlugin(std::move(plugin));
+	}
 
-DesktopWebviewAuthPlugin::DesktopWebviewAuthPlugin(flutter::FlutterView* view) : view_(view) {
-  wc.lpszClassName =  L"WebView Window";
-  wc.lpfnWndProc = &DefWindowProc;
+	DesktopWebviewAuthPlugin::DesktopWebviewAuthPlugin(flutter::FlutterView* view) : view_(view) {
+		wc.lpszClassName = L"WebView Window";
+		wc.lpfnWndProc = &DefWindowProc;
 
-  RegisterClass(&wc);
-}
+		RegisterClass(&wc);
+	}
 
-DesktopWebviewAuthPlugin::~DesktopWebviewAuthPlugin() {
-  UnregisterClass(wc.lpszClassName, nullptr);
-}
+	DesktopWebviewAuthPlugin::~DesktopWebviewAuthPlugin() {
+		UnregisterClass(wc.lpszClassName, nullptr);
+	}
 
-void DesktopWebviewAuthPlugin::HandleMethodCall(
-    const flutter::MethodCall<flutter::EncodableValue> &method_call,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-    if (method_call.method_name().compare("signIn") == 0) {
+	void DesktopWebviewAuthPlugin::HandleMethodCall(
+		const flutter::MethodCall<EncodableValue> &method_call,
+		std::unique_ptr<flutter::MethodResult<EncodableValue>> result) {
 
-      RECT rect;
-      GetWindowRect(view_->GetNativeWindow(), &rect);
+		const auto& args = std::get<flutter::EncodableMap>(*method_call.arguments());
 
-      HWND hWnd = CreateWindowExA(
-          WS_EX_OVERLAPPEDWINDOW,                        
-          "WebView Window",            
-          "",  
-          WS_OVERLAPPEDWINDOW,
-          (GetSystemMetrics(SM_CXSCREEN)/2) - (980/2), (GetSystemMetrics(SM_CYSCREEN)/2) - (720/2), 980, 720,
-          view_->GetNativeWindow(),
-          NULL,
-          wc.hInstance, 
-          NULL
-      );
+		if (method_call.method_name().compare("signIn") == 0) {
 
-      ShowWindow(hWnd, 1);
+			std::optional<std::string> signInUrl =
+				GetOptionalValue<std::string>(args, "signInUri");
 
-      // Step 3 - Create a single WebView within the parent window
-      // Locate the browser and set up the environment for WebView
-      CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
-        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [hWnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
+			HWND hWndWebView = CreateWindowExA(
+				WS_EX_OVERLAPPEDWINDOW,
+				"WebView Window",
+				"",
+				WS_OVERLAPPEDWINDOW,
+				(GetSystemMetrics(SM_CXSCREEN) / 2) - (980 / 2), 
+				(GetSystemMetrics(SM_CYSCREEN) / 2) - (720 / 2), 
+				980, 720,
+				view_->GetNativeWindow(),
+				NULL,
+				wc.hInstance,
+				NULL
+			);
 
-                  // Create a CoreWebView2Controller and get the associated CoreWebView2 whose parent is the main window hWnd
-                  env->CreateCoreWebView2Controller(hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [hWnd](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
-                    if (controller != nullptr) {
-                        webviewController = controller;
-                        webviewController->get_CoreWebView2(&webviewWindow);
-                    }
+			ShowWindow(hWndWebView, 1);
 
-                    // Add a few settings for the webview
-                    // The demo step is redundant since the values are the default settings
-                    ICoreWebView2Settings* Settings;
-                    webviewWindow->get_Settings(&Settings);
-                    Settings->put_IsScriptEnabled(TRUE);
-                    Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
-                    Settings->put_IsWebMessageEnabled(TRUE);
+			CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
+				Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+					[hWndWebView, signInUrl](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
 
-                    // Resize the WebView2 control to fit the bounds of the parent window
-                    RECT bounds;
-                    GetClientRect(hWnd, &bounds);
-                    webviewController->put_Bounds(bounds);
+						// Create a CoreWebView2Controller and get the associated CoreWebView2 whose parent is the main window hWnd
+						env->CreateCoreWebView2Controller(hWndWebView, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+							[hWndWebView, signInUrl](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
+								if (controller != nullptr) {
+									webviewController = controller;
+									webviewController->get_CoreWebView2(&webviewWindow);
+								}
 
-                    // Schedule an async task to navigate to Bing
-                    webviewWindow->Navigate(L"https://www.google.com/");
+								// Add a few settings for the webview
+								// The demo step is redundant since the values are the default settings
+								ICoreWebView2Settings* Settings;
+								webviewWindow->get_Settings(&Settings);
+								Settings->put_IsScriptEnabled(TRUE);
+								Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
+								Settings->put_IsWebMessageEnabled(TRUE);
 
-                    // 4 - Navigation events
+								// Resize the WebView2 control to fit the bounds of the parent window
+								RECT bounds;
+								GetClientRect(hWndWebView, &bounds);
+								webviewController->put_Bounds(bounds);
 
-                    // 5 - Scripting
+								std::wstring stemp = std::wstring(signInUrl->begin(), signInUrl->end());
+								LPCWSTR url = stemp.c_str();
+								webviewWindow->Navigate(url);
 
-                    // 6 - Communication between host and web content
+								// 4 - Navigation events
 
-                    return S_OK;
-                  }).Get());
-            return S_OK;
-        }).Get());
+								// 5 - Scripting
 
-      result->Success(flutter::EncodableValue());
-  } else if (method_call.method_name().compare("recaptchaVerification") == 0) {
-    //result->Success(flutter::EncodableValue(version_stream.str()));
-    result->NotImplemented();
-  } else {
-    result->NotImplemented();
-  }
-}
+								// 6 - Communication between host and web content
+
+								return S_OK;
+							}).Get());
+						return S_OK;
+					}).Get());
+
+			result->Success(flutter::EncodableValue());
+		}
+		else if (method_call.method_name().compare("recaptchaVerification") == 0) {
+			//result->Success(flutter::EncodableValue(version_stream.str()));
+			result->NotImplemented();
+		}
+		else {
+			result->NotImplemented();
+		}
+	}
 
 }  // namespace
 
 void DesktopWebviewAuthPluginRegisterWithRegistrar(
-    FlutterDesktopPluginRegistrarRef registrar) {
-  DesktopWebviewAuthPlugin::RegisterWithRegistrar(
-      flutter::PluginRegistrarManager::GetInstance()
-          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
+	FlutterDesktopPluginRegistrarRef registrar) {
+	DesktopWebviewAuthPlugin::RegisterWithRegistrar(
+		flutter::PluginRegistrarManager::GetInstance()
+		->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
 
 }
