@@ -51,6 +51,7 @@ namespace {
 	private:
 		string  initialUrl_ = "";
 		string  redirectUrl_ = "";
+		string  methodName_ = "";
 
 		WNDCLASS webViewWindowClass = { };
 
@@ -141,46 +142,58 @@ namespace {
 
 	void DesktopWebviewAuthPlugin::HandleMethodCall(
 		const flutter::MethodCall<EncodableValue>& method_call,
-		std::unique_ptr<MethodResult<EncodableValue>> flutterResult) {
+		std::unique_ptr<MethodResult<EncodableValue>> result) {
 
 		// Get args coming from Dart.
 		const auto& args = std::get<EncodableMap>(*method_call.arguments());
+		optional<int> width = GetInt(args, "width");
+		optional<int> height = GetInt(args, "height");
 
-		if (method_call.method_name().compare("signIn") == 0) {
+		methodName_ = method_call.method_name();
+
+		if (methodName_.compare("signIn") == 0) {
 
 			optional<string> signInUrl = GetString(args, "signInUri");
 			optional<string> redirectUrl = GetString(args, "redirectUri");
-			optional<int> width = GetInt(args, "width");
-			optional<int> height = GetInt(args, "height");
 
 			initialUrl_ = signInUrl.value();
 			redirectUrl_ = redirectUrl.value();
 
 			CreateWebView(width, height);
 
-			flutterResult->Success(EncodableValue());
+			result->Success(EncodableValue());
 		}
-		else if (method_call.method_name().compare("recaptchaVerification") == 0) {
-			//result->Success(flutter::EncodableValue(version_stream.str()));
-			flutterResult->NotImplemented();
+		else if (methodName_.compare("recaptchaVerification") == 0) {
+			optional<string> redirectUrl = GetString(args, "redirectUrl");
+			initialUrl_ = redirectUrl.value();
+
+			CreateWebView(width, height);
+			result->Success(EncodableValue());
 		}
 		else {
-			flutterResult->NotImplemented();
+			result->NotImplemented();
 		}
 	}
 
 	HRESULT DesktopWebviewAuthPlugin::UrlChangedCallback(const std::string url)
 	{
-		if (url.rfind(redirectUrl_, 0) == 0) {
+		bool matching = false;
 
-			ClearCookies();
-			auto result = std::make_unique<EncodableValue>(EncodableMap{ {"url", url},{"flow", "signIn"} });
+		ClearCookies();
+
+		if (methodName_.compare("signIn") == 0) {
+			matching = url.rfind(redirectUrl_, 0) == 0;
+		}
+		else if (methodName_.compare("recaptchaVerification") == 0) {
+			matching = url.find("response") != string::npos;
+		}
+
+		if (matching) {
+			auto result = std::make_unique<EncodableValue>(EncodableMap{ {"url", url}, {"flow", methodName_} });
 
 			channel_->InvokeMethod("onCallbackUrlReceived", std::move(result), nullptr);
 
 			DestroyWindow(hWndWebView);
-
-			return S_OK;
 		}
 
 		return S_OK;
@@ -193,7 +206,7 @@ namespace {
 	}
 
 	std::optional<std::string> DesktopWebviewAuthPlugin::GetString(
-		const EncodableMap& map, 
+		const EncodableMap& map,
 		const string& key)
 	{
 		const auto it = map.find(EncodableValue(key));
@@ -226,13 +239,13 @@ namespace {
 			height = 720;
 		}
 
-		HWND hWnd = CreateWindowExA(
+		hWndWebView = CreateWindowExA(
 			WS_EX_OVERLAPPEDWINDOW,
 			kWebViewClassName.c_str(),
 			"",
 			WS_OVERLAPPEDWINDOW,
-			(GetSystemMetrics(SM_CXSCREEN) / 2) - (980 / 2),
-			(GetSystemMetrics(SM_CYSCREEN) / 2) - (720 / 2),
+			(GetSystemMetrics(SM_CXSCREEN) / 2) - (width.value() / 2),
+			(GetSystemMetrics(SM_CYSCREEN) / 2) - (height.value() / 2),
 			width.value(), height.value(),
 			view_->GetNativeWindow(),
 			NULL,
@@ -240,11 +253,7 @@ namespace {
 			NULL
 		);
 
-		hWndWebView = hWnd;
-
-		if (hWndWebView) {
-			ShowWindow(hWndWebView, 1);
-		}
+		ShowWindow(hWndWebView, 1);
 
 		CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
 			Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
