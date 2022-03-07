@@ -40,68 +40,114 @@ const string kWebViewClassName = "WebView";
 const string kFlutterChannelName = "io.invertase.flutter/desktop_webview_auth";
 
 namespace {
+
 	class DesktopWebviewAuthPlugin : public flutter::Plugin {
+
 	public:
 		static void RegisterWithRegistrar(flutter::PluginRegistrarWindows* registrar);
 
 		DesktopWebviewAuthPlugin(FlutterView* view);
 
 		virtual ~DesktopWebviewAuthPlugin();
+		
+		LRESULT MessageHandler(HWND window,
+			UINT const message,
+			WPARAM const wparam,
+			LPARAM const lparam);
 
 	private:
 		string  initialUrl_ = "";
 		string  redirectUrl_ = "";
 		string  methodName_ = "";
-
+		
 		WNDCLASS webViewWindowClass = { };
 
-		unique_ptr<FlutterView> view_;
+		// Register the token of Navigation event.
+		EventRegistrationToken navigationToken;
 
-		unique_ptr<flutter::MethodChannel<EncodableValue>> channel_;
-
-		/// <summary>
-		/// Pointer to WebViewController
-		/// </summary>
-		com_ptr<ICoreWebView2Controller> webviewController;
-
-		/// <summary>
-		/// Pointer to WebView window.
-		/// </summary>
-		com_ptr<ICoreWebView2> webview_ = wil::com_ptr<ICoreWebView2>();
-
-		/// <summary>
-		/// The popup windows in which the WebView is loaded.
-		/// </summary>
+		// The popup windows in which the WebView is loaded.
 		HWND hWndWebView;
 
-		/// <summary>
-		/// Called when a method is called on this plugin's channel from Dart.
-		/// </summary>
-		/// <param name="method_call"></param>
-		/// <param name="result"></param>
+		// The current Flutter view.
+		unique_ptr<FlutterView> view_;
+
+		// Pointer to the Flutter MethodChannel.
+		unique_ptr<MethodChannel<EncodableValue>> channel_;
+
+		// Pointer to WebViewController
+		com_ptr<ICoreWebView2Controller> webviewController;
+
+		// Pointer to WebView window.
+		com_ptr<ICoreWebView2> webview_ = wil::com_ptr<ICoreWebView2>();
+
+		// Called when a method is called on this plugin's channel from Dart.
 		void HandleMethodCall(
 			const MethodCall<EncodableValue>& method_call,
 			unique_ptr<MethodResult<EncodableValue>> result);
 
-		/// <summary>
-		/// Callback that triggers when the url changes.
-		/// Closes the WebView and returns a result once the redirect with response is received.
-		/// </summary>
-		/// <param name="url"></param>
-		/// <returns></returns>
+		// Open a new window showing a WebView with the desired width and height.
+		void CreateWebView(optional<int> width, optional<int> height);
+
+		// Callback that triggers when the url changes.
+		// Closes the WebView and returns a result once the redirect with response is received.
 		HRESULT UrlChangedCallback(const string url);
 
-		/// <summary>
-		///  Clear coockies of the current WebView.
-		/// </summary>
-		/// <returns>Status of clearning the cookies, true for success.</returns>
+		//  Clear coockies of the current WebView.
 		bool ClearCookies();
-
-		optional<string> GetString(const EncodableMap& map, const string& key);
-		optional<int> GetInt(const EncodableMap& map, const string& key);
-
-		void CreateWebView(optional<int> width, optional<int> height);
 	};
+
+	LRESULT CALLBACK WinProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		DesktopWebviewAuthPlugin* plugin = reinterpret_cast<DesktopWebviewAuthPlugin*>(GetWindowLongPtr(hWindow, GWLP_USERDATA));
+
+		if (plugin != nullptr) {
+
+			return plugin->MessageHandler(hWindow, uMsg, wParam, lParam);  // Forward message to instance-aware WndProc
+		}
+		else {
+			return DefWindowProc(hWindow, uMsg, wParam, lParam);
+		}
+	}
+
+	LRESULT DesktopWebviewAuthPlugin::MessageHandler(HWND window,
+		UINT const message,
+		WPARAM const wparam,
+		LPARAM const lparam)
+	{
+		switch (message)
+		{
+		case WM_CLOSE:
+		{
+			unique_ptr result = std::make_unique<EncodableValue>(EncodableMap{ {"flow", methodName_} });
+			channel_->InvokeMethod("onDismissed", std::move(result), nullptr);
+
+			ClearCookies();
+			redirectUrl_ = "";
+			initialUrl_ = "";
+			webview_->remove_NavigationCompleted(navigationToken);
+
+			DestroyWindow(window);
+		}
+		break;
+		case WM_DESTROY:
+		{
+			ClearCookies();
+			redirectUrl_ = "";
+			initialUrl_ = "";
+			webview_->remove_NavigationCompleted(navigationToken);
+
+			PostQuitMessage(0);
+		}
+		break;
+		default:
+		{
+			return DefWindowProc(window, message, wparam, lparam);
+		}
+		break;
+		}
+
+		return 0;
+	}
 
 	// static.
 	void DesktopWebviewAuthPlugin::RegisterWithRegistrar(
@@ -122,13 +168,41 @@ namespace {
 		registrar->AddPlugin(std::move(plugin));
 	}
 
+	// Util to get a String out of a Flutter EncodableMap.
+	optional<string> GetString(
+		const EncodableMap& map,
+		const string& key)
+	{
+		const auto it = map.find(EncodableValue(key));
+		if (it != map.end()) {
+			const auto val = std::get_if<string>(&it->second);
+			if (val) {
+				return *val;
+			}
+		}
+		return std::nullopt;
+	}
+
+	// Util to get a int out of a Flutter EncodableMap.
+	optional<int> GetInt(const EncodableMap& map, const string& key)
+	{
+		const auto it = map.find(EncodableValue(key));
+		if (it != map.end()) {
+			const auto val = std::get_if<int>(&it->second);
+			if (val) {
+				return *val;
+			}
+		}
+		return std::nullopt;
+	}
+
 	// constructor.
 	DesktopWebviewAuthPlugin::DesktopWebviewAuthPlugin(FlutterView* view) : view_(view) {
 		// Convert short to wide string.
 		const auto temp = std::wstring(kWebViewClassName.begin(), kWebViewClassName.end());
 
 		webViewWindowClass.lpszClassName = temp.c_str();
-		webViewWindowClass.lpfnWndProc = &DefWindowProc;
+		webViewWindowClass.lpfnWndProc = &WinProc;
 
 		channel_ = std::unique_ptr<flutter::MethodChannel<EncodableValue>>();
 
@@ -136,7 +210,6 @@ namespace {
 	}
 
 	DesktopWebviewAuthPlugin::~DesktopWebviewAuthPlugin() {
-		redirectUrl_ = "";
 		UnregisterClass(webViewWindowClass.lpszClassName, nullptr);
 	}
 
@@ -179,8 +252,6 @@ namespace {
 	{
 		bool matching = false;
 
-		ClearCookies();
-
 		if (methodName_.compare("signIn") == 0) {
 			matching = url.rfind(redirectUrl_, 0) == 0;
 		}
@@ -199,36 +270,14 @@ namespace {
 		return S_OK;
 	}
 
+
 	bool DesktopWebviewAuthPlugin::ClearCookies()
 	{
 		return webview_->CallDevToolsProtocolMethod(L"Network.clearBrowserCookies",
 			L"{}", nullptr) == S_OK;
 	}
 
-	std::optional<std::string> DesktopWebviewAuthPlugin::GetString(
-		const EncodableMap& map,
-		const string& key)
-	{
-		const auto it = map.find(EncodableValue(key));
-		if (it != map.end()) {
-			const auto val = std::get_if<string>(&it->second);
-			if (val) {
-				return *val;
-			}
-		}
-		return std::nullopt;
-	}
-	optional<int> DesktopWebviewAuthPlugin::GetInt(const EncodableMap& map, const string& key)
-	{
-		const auto it = map.find(EncodableValue(key));
-		if (it != map.end()) {
-			const auto val = std::get_if<int>(&it->second);
-			if (val) {
-				return *val;
-			}
-		}
-		return std::nullopt;
-	}
+
 	void DesktopWebviewAuthPlugin::CreateWebView(optional<int> width, optional<int> height)
 	{
 		if (!width.has_value()) {
@@ -240,10 +289,10 @@ namespace {
 		}
 
 		hWndWebView = CreateWindowExA(
-			WS_EX_OVERLAPPEDWINDOW,
+			WS_EX_DLGMODALFRAME,
 			kWebViewClassName.c_str(),
 			"",
-			WS_OVERLAPPEDWINDOW,
+			WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
 			(GetSystemMetrics(SM_CXSCREEN) / 2) - (width.value() / 2),
 			(GetSystemMetrics(SM_CYSCREEN) / 2) - (height.value() / 2),
 			width.value(), height.value(),
@@ -252,6 +301,8 @@ namespace {
 			webViewWindowClass.hInstance,
 			NULL
 		);
+
+		SetWindowLongPtr(hWndWebView, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
 		ShowWindow(hWndWebView, 1);
 
@@ -284,7 +335,6 @@ namespace {
 
 							webview_->Navigate(url);
 
-							EventRegistrationToken token;
 							webview_->add_NavigationCompleted(
 								Callback<ICoreWebView2NavigationCompletedEventHandler>(
 									[this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
@@ -297,7 +347,7 @@ namespace {
 
 										return S_OK;
 									})
-								.Get(), &token);
+								.Get(), &navigationToken);
 
 							return S_OK;
 						}).Get());
@@ -312,3 +362,4 @@ void DesktopWebviewAuthPluginRegisterWithRegistrar(
 		flutter::PluginRegistrarManager::GetInstance()
 		->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
 }
+
