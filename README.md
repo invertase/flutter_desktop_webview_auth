@@ -29,6 +29,12 @@ apt install libwebkit2gtk-4.0-dev
 
 Additionally, if Flutter is installed using snap, you might face issues compiling the app, to fix you would need to uninstall the snap version and [install Flutter manually on Linux](https://docs.flutter.dev/get-started/install/linux#install-flutter-manually).
 
+## Windows setup
+
+Make sure you are on latest stable channle of Flutter, and have installed the requirements [as mentioned here](https://docs.flutter.dev/desktop#additional-windows-requirements).
+
+Nothing extra is needed to get started on Windows.
+
 ### Add dependency
 
 ```bash
