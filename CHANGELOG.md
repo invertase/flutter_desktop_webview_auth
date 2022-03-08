@@ -1,3 +1,5 @@
+## 0.0.6
+* Feat: Windows support.
 ## 0.0.5
 * Fix: issue with `signIn` future.
 ## 0.0.4
