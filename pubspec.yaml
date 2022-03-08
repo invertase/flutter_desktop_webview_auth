@@ -25,6 +25,8 @@ flutter:
         pluginClass: DesktopWebviewAuthPlugin
       linux:
         pluginClass: DesktopWebviewAuthPlugin
+      windows:
+        pluginClass: DesktopWebviewAuthPlugin
 
 false_secrets:
   - /README.md
