@@ -121,11 +121,6 @@ namespace {
 			unique_ptr result = std::make_unique<EncodableValue>(EncodableMap{ {"flow", methodName_} });
 			channel_->InvokeMethod("onDismissed", std::move(result), nullptr);
 
-			ClearCookies();
-			redirectUrl_ = "";
-			initialUrl_ = "";
-			webview_->remove_NavigationCompleted(navigationToken);
-
 			DestroyWindow(window);
 		}
 		break;
@@ -135,8 +130,6 @@ namespace {
 			redirectUrl_ = "";
 			initialUrl_ = "";
 			webview_->remove_NavigationCompleted(navigationToken);
-
-			PostQuitMessage(0);
 		}
 		break;
 		default:
