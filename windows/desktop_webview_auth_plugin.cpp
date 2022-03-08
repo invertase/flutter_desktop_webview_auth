@@ -274,11 +274,11 @@ namespace {
 	void DesktopWebviewAuthPlugin::CreateWebView(optional<int> width, optional<int> height)
 	{
 		if (!width.has_value()) {
-			width = 920;
+			width = GetSystemMetrics(SM_CXSCREEN) / 2;
 		}
 
 		if (!height.has_value()) {
-			height = 720;
+			height = GetSystemMetrics(SM_CYSCREEN) / 2;
 		}
 
 		hWndWebView = CreateWindowExA(
