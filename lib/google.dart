@@ -1,10 +1,10 @@
 import 'src/provider_args.dart';
 
-const _defaultSignInScope = 'https://www.googleapis.com/auth/plus.login';
+const _defaultSignInScopes = ['https://www.googleapis.com/auth/plus.login'];
 
 class GoogleSignInArgs extends ProviderArgs {
   final String clientId;
-  final String scope;
+  final List<String> scopes;
   final bool immediate;
   final String responseType;
 
@@ -20,7 +20,7 @@ class GoogleSignInArgs extends ProviderArgs {
   GoogleSignInArgs({
     required this.clientId,
     required this.redirectUri,
-    this.scope = _defaultSignInScope,
+    this.scopes = _defaultSignInScopes,
     this.immediate = false,
     this.responseType = 'token id_token',
   });
@@ -29,7 +29,7 @@ class GoogleSignInArgs extends ProviderArgs {
   Map<String, String> buildQueryParameters() {
     return {
       'client_id': clientId,
-      'scope': Uri.encodeFull(scope),
+      'scope': scopes.map((s) => Uri.encodeFull(s)).join(' '),
       'immediate': immediate.toString(),
       'response_type': responseType,
       'redirect_uri': redirectUri,
