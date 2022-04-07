@@ -84,6 +84,8 @@ class MyApp extends StatelessWidget {
                   GoogleSignInArgs(
                     clientId: GOOGLE_CLIENT_ID,
                     redirectUri: REDIRECT_URI,
+                    scope: 'https://www.googleapis.com/auth/plus.me '
+                        'https://www.googleapis.com/auth/userinfo.email',
                   ),
                 ),
               ),

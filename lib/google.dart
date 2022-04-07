@@ -29,7 +29,7 @@ class GoogleSignInArgs extends ProviderArgs {
   Map<String, String> buildQueryParameters() {
     return {
       'client_id': clientId,
-      'scope': Uri.encodeFull(scope),
+      'scope': scope,
       'immediate': immediate.toString(),
       'response_type': responseType,
       'redirect_uri': redirectUri,
