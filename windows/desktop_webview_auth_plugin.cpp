@@ -311,12 +311,18 @@ namespace {
 							}
 
 							// Add a few settings for the webview
-							// The demo step is redundant since the values are the default settings
-							ICoreWebView2Settings* Settings;
+							wil::com_ptr<ICoreWebView2Settings> Settings;
+							wil::com_ptr<ICoreWebView2Settings2> Settings2_;
+
 							webview_->get_Settings(&Settings);
+							
+							Settings2_ = Settings.try_query<ICoreWebView2Settings2>();
+							
 							Settings->put_IsScriptEnabled(TRUE);
-							Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
-							Settings->put_IsWebMessageEnabled(TRUE);
+							Settings->put_AreDefaultScriptDialogsEnabled(FALSE);
+							Settings->put_IsWebMessageEnabled(FALSE);
+							Settings->put_AreHostObjectsAllowed(FALSE);
+							Settings2_->put_UserAgent(L"Chrome");
 
 							// Resize the WebView2 control to fit the bounds of the parent window
 							RECT bounds;
