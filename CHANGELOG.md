@@ -1,3 +1,6 @@
+## 0.0.7
+* Fix: Windows WebView Google sign-in issue.
+* Fix: Google scopes query encoding.
 ## 0.0.6
 * Feat: Windows support.
 ## 0.0.5
