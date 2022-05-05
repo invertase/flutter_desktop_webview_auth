@@ -5,8 +5,9 @@ import 'package:googleapis/identitytoolkit/v3.dart';
 import 'package:googleapis_auth/googleapis_auth.dart';
 
 import 'package:desktop_webview_auth/desktop_webview_auth.dart';
-import 'package:desktop_webview_auth/google.dart';
 import 'package:desktop_webview_auth/facebook.dart';
+import 'package:desktop_webview_auth/github.dart';
+import 'package:desktop_webview_auth/google.dart';
 import 'package:desktop_webview_auth/twitter.dart';
 
 void main() {
@@ -24,6 +25,9 @@ const TWITTER_API_KEY = 'YEXSiWv5UeCHyy0c61O2LBC3B';
 const TWITTER_API_SECRET_KEY =
     'DOd9dCCRFgtnqMDQT7A68YuGZtvcO4WP1mEFS4mEJAUooM4yaE';
 const FACEBOOK_CLIENT_ID = '128693022464535';
+
+const GITHUB_CLIENT_ID = '582d07c80a9afae77406';
+const GITHUB_CLIENT_SECRET = '2d60f5e850bc178dfa6b7f6c6e37a65b175172d3';
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -106,6 +110,17 @@ class MyApp extends StatelessWidget {
                   context,
                   FacebookSignInArgs(
                     clientId: FACEBOOK_CLIENT_ID,
+                    redirectUri: REDIRECT_URI,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                child: const Text('Sign in with GitHub'),
+                onPressed: signInWithArgs(
+                  context,
+                  GitHubSignInArgs(
+                    clientId: GITHUB_CLIENT_ID,
+                    clientSecret: GITHUB_CLIENT_SECRET,
                     redirectUri: REDIRECT_URI,
                   ),
                 ),
