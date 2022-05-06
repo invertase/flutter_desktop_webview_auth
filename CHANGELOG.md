@@ -1,3 +1,5 @@
+## 0.0.8
+* Feat: GitHub authorization flow on Windows, Linux and macOS.
 ## 0.0.7
 * Fix: Windows WebView Google sign-in issue.
 * Fix: Google scopes query encoding.
