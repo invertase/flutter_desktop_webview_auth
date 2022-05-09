@@ -1,3 +1,5 @@
+## 0.0.9
+* Fix: possible dependency conflict on Windows with other plugins using WebView2.
 ## 0.0.8
 * Feat: GitHub authorization flow on Windows, Linux and macOS.
 ## 0.0.7
