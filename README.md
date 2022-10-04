@@ -21,10 +21,16 @@ The recaptcha verification flow is done on the local server, and it requires tha
 
 ### Linux setup
 
-To display webview on Linux, `libwebkit2gtk-4.0-dev` is used, if you don't have it already installed:
+To display webview on Linux, WebKit2GTK development libraries are used, if you don't have it already installed:
 
+**Ubuntu:**
 ```bash
 apt install libwebkit2gtk-4.0-dev
+```
+
+**Fedora:**
+```bash
+dnf install webkit2gtk3-devel
 ```
 
 Additionally, if Flutter is installed using snap, you might face issues compiling the app, to fix you would need to uninstall the snap version and [install Flutter manually on Linux](https://docs.flutter.dev/get-started/install/linux#install-flutter-manually).
