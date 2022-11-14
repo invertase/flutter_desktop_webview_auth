@@ -1,6 +1,6 @@
 # Desktop webview auth
 
-This package enables Firebase OAuth on desktop via webview
+This package enables Firebase OAuth on desktop platforms via webview
 
 ## Supported providers:
 
@@ -24,11 +24,13 @@ The recaptcha verification flow is done on the local server, and it requires tha
 To display webview on Linux, WebKit2GTK development libraries are used, if you don't have it already installed:
 
 **Ubuntu:**
+
 ```bash
 apt install libwebkit2gtk-4.0-dev
 ```
 
 **Fedora:**
+
 ```bash
 dnf install webkit2gtk3-devel
 ```

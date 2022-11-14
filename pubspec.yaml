@@ -4,14 +4,17 @@ version: 0.0.9
 homepage: https://github.com/invertase/flutter_desktop_webview_auth
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
-  flutter: '>=1.20.0'
+  sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=1.20.0"
 
 dependencies:
   crypto: ^3.0.1
   flutter:
     sdk: flutter
   http: ^0.13.3
+  flutter_web_plugins:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.3
 
 dev_dependencies:
   flutter_test:
@@ -27,6 +30,14 @@ flutter:
         pluginClass: DesktopWebviewAuthPlugin
       windows:
         pluginClass: DesktopWebviewAuthPlugin
+      ios:
+        pluginClass: DesktopWebviewAuthPlugin
+      android:
+        package: com.example.desktop_webview_auth
+        pluginClass: DesktopWebviewAuthPlugin
+      web:
+        pluginClass: DesktopWebviewAuthWeb
+        fileName: desktop_webview_auth_web.dart
 
 false_secrets:
   - /README.md
