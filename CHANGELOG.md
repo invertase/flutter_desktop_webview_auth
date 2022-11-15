@@ -1,3 +1,7 @@
+# 0.0.11
+
+= Fix: return nil instead of FlutterErrorNotImplemented on iOS
+
 ## 0.0.10
 
 - Fix: add stub implementations for android, ios and web
