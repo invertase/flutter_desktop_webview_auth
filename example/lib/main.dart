@@ -55,7 +55,7 @@ class MyApp extends StatelessWidget {
 
     final args = RecaptchaArgs(
       siteKey: recaptchaResponse.recaptchaSiteKey!,
-      siteToken: recaptchaResponse.recaptchaStoken!,
+      //siteToken: recaptchaResponse.recaptchaStoken!,
     );
 
     final result = await DesktopWebviewAuth.recaptchaVerification(
