@@ -8,6 +8,55 @@ String recaptchaHTML(
 }) {
   return '''
   <!DOCTYPE html>
+<html>
+<head>
+    <title>reCAPTCHA</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+<div class="g-recaptcha"
+     data-sitekey="$siteKey"
+     data-callback="callback"
+     data-expired-callback="expiredCallback"
+     data-error-callback="errorCallback"
+     ></div>
+
+<script type="text/javascript">
+  var callback = function (token) {
+      var url = window.location.href + ('?response=' + token)
+      window.location.href = url
+      Window.close()
+  };
+
+  var errorCallback = function (token) {
+      var url = window.location.href + ('?error-code=CAPTCHA_CHECK_FAILED&token='+token)
+      window.location.href = url
+      alert(token);
+  };
+
+  var expiredCallback = function (token) {
+      var url = window.location.href + ('?error-code=CAPTCHA_CHECK_FAILED')
+      window.location.href = url
+  };
+
+  var onloadCallback = function() {
+    grecaptcha.render('g-recaptcha', {
+      'sitekey' : "$siteKey",
+      'theme': "$theme",
+      'size': "$size",
+      'callback': "callback",
+      'expired-callback': "expiredCallback",
+      'error-callback': "errorCallback"
+    });
+  };
+</script>
+</body>
+</html>
+<html>
+<body>
+  ''';
+  return '''
+  <!DOCTYPE html>
   <html>
 
   <head>
@@ -23,8 +72,9 @@ String recaptchaHTML(
               };
 
               var errorCallback = function (token) {
-                  var url = window.location.href + ('?error-code=CAPTCHA_CHECK_FAILED')
+                  var url = window.location.href + ('?error-code=CAPTCHA_CHECK_FAILED&token='+token)
                   window.location.href = url
+                  alert(token);
               };
 
               var expiredCallback = function (token) {

@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
     final recaptchaResponse = await res.getRecaptchaParam();
 
     final args = RecaptchaArgs(
-      siteKey: recaptchaResponse.recaptchaSiteKey!,
+      siteKey: '6LfbhJoeAAAAAKcgv-rAvlcXZI0OKyy-71gOXZi7',
       //siteToken: recaptchaResponse.recaptchaStoken!,
     );
 
