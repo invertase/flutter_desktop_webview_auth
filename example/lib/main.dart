@@ -62,6 +62,7 @@ class MyApp extends StatelessWidget {
       args,
       height: 600,
       width: 600,
+      context: context
     );
 
     notify(context, result?.verificationId);

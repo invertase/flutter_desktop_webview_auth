@@ -5,7 +5,11 @@ import 'package:desktop_webview_auth/src/platform_response.dart';
 import 'package:desktop_webview_auth/src/recaptcha_args.dart';
 import 'package:desktop_webview_auth/src/recaptcha_result.dart';
 import 'package:desktop_webview_auth/src/recaptcha_verification_server.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:webview_universal/webview_universal.dart';
+import 'package:webview_flutter/webview_flutter.dart' as wvf;
 
 import 'src/auth_result.dart';
 import 'src/provider_args.dart';
@@ -129,6 +133,7 @@ class DesktopWebviewAuth {
     RecaptchaArgs args, {
     int? width,
     int? height,
+    required BuildContext context,
   }) async {
     _recaptchaVerificationCompleter = Completer<RecaptchaResult?>();
     final server = RecaptchaVerificationServer(args);
@@ -138,13 +143,7 @@ class DesktopWebviewAuth {
     };
 
     await server.start();
-
-    final invokeArgs = RecaptchaVerificationInvokeArgs.fromArgs(
-      args,
-      server.url,
-    );
-
-    await _invokeRecaptchaVerification(invokeArgs, width, height);
+    await _openWebView(server.url, width, height, context);
 
     return _recaptchaVerificationCompleter.future
         .whenComplete(server.close)
@@ -171,5 +170,30 @@ class DesktopWebviewAuth {
     } catch (_) {
       return null;
     }
+  }
+
+  static _openWebView(String url, int? width, int? height, BuildContext context) async {
+    WebViewController webViewController = WebViewController();
+    await webViewController.init(
+      context: context,
+      uri: Uri.parse(url),
+      setState: (fn) {},
+    );
+    if(webViewController.is_desktop)
+      webViewController.webview_desktop_controller.addOnUrlRequestCallback(_onRecaptchaCallbackUrlReceived);
+    if(webViewController.is_mobile)
+      webViewController.webview_mobile_controller.setNavigationDelegate(wvf.NavigationDelegate(
+        onNavigationRequest: (wvf.NavigationRequest request) {
+          _onRecaptchaCallbackUrlReceived(request.url);
+          return wvf.NavigationDecision.prevent;
+        },
+      ));
+
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => Scaffold(
+      appBar: AppBar(),
+      body: WebView(
+        controller: webViewController,
+      ),
+    )));
   }
 }
