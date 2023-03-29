@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
     final identityToolkit = IdentityToolkitApi(client);
     final res = identityToolkit.relyingparty;
 
-    final recaptchaResponse = await res.getRecaptchaParam();
+    //final recaptchaResponse = await res.getRecaptchaParam();
 
     final args = RecaptchaArgs(
       siteKey: '6LfbhJoeAAAAAKcgv-rAvlcXZI0OKyy-71gOXZi7',
