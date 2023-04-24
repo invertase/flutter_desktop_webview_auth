@@ -80,7 +80,7 @@ class DesktopWebviewAuth {
         if (res.flow == 'signIn') {
           await _onSignInCallbackUrlReceived(res.url);
         } else if (res.flow == 'recaptchaVerification') {
-          _onRecaptchaCallbackUrlReceived(res.url);
+          _onRecaptchaCallbackUrlReceived(res.url, null);
         }
         break;
 
@@ -105,7 +105,7 @@ class DesktopWebviewAuth {
     completer.complete();
   }
 
-  static void _onRecaptchaCallbackUrlReceived(String? callbackUrl) {
+  static void _onRecaptchaCallbackUrlReceived(String? callbackUrl, BuildContext? context) {
     if (callbackUrl == null) {
       _recaptchaVerificationCompleter.complete(null);
     } else {
@@ -113,6 +113,7 @@ class DesktopWebviewAuth {
       final response = parsedUri.queryParameters['response'];
       final result = RecaptchaResult(response);
       _recaptchaVerificationCompleter.complete(result);
+      Navigator.pop(context!);
     }
   }
 
@@ -148,7 +149,7 @@ class DesktopWebviewAuth {
     return _recaptchaVerificationCompleter.future
         .whenComplete(server.close)
         .timeout(
-      const Duration(seconds: 60),
+      const Duration(seconds: 90),
       onTimeout: () {
         server.close();
         return null;
@@ -183,7 +184,11 @@ class DesktopWebviewAuth {
         onWebViewCreated: (controller) => webviewController = controller,
         height: height ?? 800,
         width: width ?? 600,
-        onPageStarted: _onRecaptchaCallbackUrlReceived,
+        onPageStarted: (page){
+          print('WebView page: $page');
+          if(Uri.parse(page).hasQuery)
+            _onRecaptchaCallbackUrlReceived(page, context);
+        },
       ),
     )));
   }

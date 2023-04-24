@@ -12,6 +12,7 @@ String recaptchaHTML(
 <head>
     <title>reCAPTCHA</title>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    $style
 </head>
 <body>
 <div class="g-recaptcha"
