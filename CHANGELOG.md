@@ -1,6 +1,10 @@
+# 0.0.12
+
+- Fix: Add support to AGP 8.0.
+
 # 0.0.11
 
-= Fix: return nil instead of FlutterErrorNotImplemented on iOS
+- Fix: return nil instead of FlutterErrorNotImplemented on iOS
 
 ## 0.0.10
 
