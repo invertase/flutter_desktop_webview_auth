@@ -51,17 +51,18 @@ class MyApp extends StatelessWidget {
     final identityToolkit = IdentityToolkitApi(client);
     final res = identityToolkit.relyingparty;
 
-    final recaptchaResponse = await res.getRecaptchaParam();
+    //final recaptchaResponse = await res.getRecaptchaParam();
 
     final args = RecaptchaArgs(
-      siteKey: recaptchaResponse.recaptchaSiteKey!,
-      siteToken: recaptchaResponse.recaptchaStoken!,
+      siteKey: '6LfbhJoeAAAAAKcgv-rAvlcXZI0OKyy-71gOXZi7',
+      //siteToken: recaptchaResponse.recaptchaStoken!,
     );
 
     final result = await DesktopWebviewAuth.recaptchaVerification(
       args,
       height: 600,
       width: 600,
+      context: context
     );
 
     notify(context, result?.verificationId);

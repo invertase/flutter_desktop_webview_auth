@@ -6,11 +6,11 @@ import 'jsonable.dart';
 
 class RecaptchaArgs implements Jsonable {
   final String siteKey;
-  final String siteToken;
+  final String? siteToken;
 
   RecaptchaArgs({
     required this.siteKey,
-    required this.siteToken,
+    this.siteToken,
   });
 
   @override
@@ -27,7 +27,7 @@ class RecaptchaVerificationInvokeArgs extends RecaptchaArgs {
 
   RecaptchaVerificationInvokeArgs({
     required String siteKey,
-    required String siteToken,
+    String? siteToken,
     required this.redirectUrl,
   }) : super(siteKey: siteKey, siteToken: siteToken);
 

@@ -6,8 +6,8 @@ import 'package:desktop_webview_auth/src/recaptcha_html.dart';
 class RecaptchaVerificationServer {
   final RecaptchaArgs args;
   late void Function(Exception e) _onError;
-  late final HttpServer _server;
-  late final String url;
+  HttpServer? _server;
+  String? url;
 
   RecaptchaVerificationServer(this.args);
 
@@ -19,7 +19,7 @@ class RecaptchaVerificationServer {
     final address = InternetAddress.loopbackIPv4;
     _server = await HttpServer.bind(address, 0);
 
-    _server.listen((req) async {
+    _server!.listen((req) async {
       try {
         final res = req.response;
         final body = _handleRequest(req);
@@ -41,11 +41,11 @@ class RecaptchaVerificationServer {
       }
     });
 
-    url = 'http://${address.host}:${_server.port}';
+    url = 'http://${address.host}:${_server!.port}';
   }
 
   Future<void> close() async {
-    await _server.close();
+    await _server?.close();
   }
 
   String? _handleRequest(HttpRequest req) {

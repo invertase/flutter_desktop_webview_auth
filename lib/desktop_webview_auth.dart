@@ -5,8 +5,10 @@ import 'package:desktop_webview_auth/src/platform_response.dart';
 import 'package:desktop_webview_auth/src/recaptcha_args.dart';
 import 'package:desktop_webview_auth/src/recaptcha_result.dart';
 import 'package:desktop_webview_auth/src/recaptcha_verification_server.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:flutter/widgets.dart';
+import 'package:webviewx/webviewx.dart';
 import 'src/auth_result.dart';
 import 'src/provider_args.dart';
 
@@ -14,6 +16,8 @@ export 'src/provider_args.dart';
 export 'src/recaptcha_args.dart' show RecaptchaArgs;
 export 'src/auth_result.dart';
 export 'src/recaptcha_result.dart';
+import 'package:flutter/foundation.dart';
+import 'src/recaptcha_html.dart';
 
 const _channelName = 'io.invertase.flutter/desktop_webview_auth';
 
@@ -76,7 +80,7 @@ class DesktopWebviewAuth {
         if (res.flow == 'signIn') {
           await _onSignInCallbackUrlReceived(res.url);
         } else if (res.flow == 'recaptchaVerification') {
-          _onRecaptchaCallbackUrlReceived(res.url);
+          _onRecaptchaCallbackUrlReceived(res.url, null);
         }
         break;
 
@@ -101,7 +105,7 @@ class DesktopWebviewAuth {
     completer.complete();
   }
 
-  static void _onRecaptchaCallbackUrlReceived(String? callbackUrl) {
+  static void _onRecaptchaCallbackUrlReceived(String? callbackUrl, BuildContext? context) {
     if (callbackUrl == null) {
       _recaptchaVerificationCompleter.complete(null);
     } else {
@@ -109,6 +113,7 @@ class DesktopWebviewAuth {
       final response = parsedUri.queryParameters['response'];
       final result = RecaptchaResult(response);
       _recaptchaVerificationCompleter.complete(result);
+      Navigator.pop(context!);
     }
   }
 
@@ -127,8 +132,9 @@ class DesktopWebviewAuth {
 
   static Future<RecaptchaResult?> recaptchaVerification(
     RecaptchaArgs args, {
-    int? width,
-    int? height,
+    double? width,
+    double? height,
+    required BuildContext context,
   }) async {
     _recaptchaVerificationCompleter = Completer<RecaptchaResult?>();
     final server = RecaptchaVerificationServer(args);
@@ -136,20 +142,14 @@ class DesktopWebviewAuth {
     server.onError = (e) {
       _recaptchaVerificationCompleter.completeError(e);
     };
-
-    await server.start();
-
-    final invokeArgs = RecaptchaVerificationInvokeArgs.fromArgs(
-      args,
-      server.url,
-    );
-
-    await _invokeRecaptchaVerification(invokeArgs, width, height);
+    if(!kIsWeb)
+      await server.start();
+    await _openWebView(server.url, width, height, context, args.siteKey);
 
     return _recaptchaVerificationCompleter.future
         .whenComplete(server.close)
         .timeout(
-      const Duration(seconds: 60),
+      const Duration(seconds: 90),
       onTimeout: () {
         server.close();
         return null;
@@ -171,5 +171,25 @@ class DesktopWebviewAuth {
     } catch (_) {
       return null;
     }
+  }
+
+  static _openWebView(String? url, double? width, double? height, BuildContext context, String siteKey) async {
+    late WebViewXController webviewController;
+
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => Scaffold(
+      appBar: AppBar(),
+      body: WebViewX(
+        initialContent: url ?? recaptchaHTML(siteKey, null),
+        initialSourceType: url!=null ? SourceType.url: SourceType.html,
+        onWebViewCreated: (controller) => webviewController = controller,
+        height: height ?? 800,
+        width: width ?? 600,
+        onPageStarted: (page){
+          print('WebView page: $page');
+          if(Uri.parse(page).hasQuery)
+            _onRecaptchaCallbackUrlReceived(page, context);
+        },
+      ),
+    )));
   }
 }
