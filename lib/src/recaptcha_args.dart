@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 
 import 'jsonable.dart';
 
-class RecaptchaArgs implements Jsonable {
+class RecaptchaArgs implements JsonSerializable {
   final String siteKey;
   final String siteToken;
 
-  RecaptchaArgs({
+  const RecaptchaArgs({
     required this.siteKey,
     required this.siteToken,
   });
@@ -25,7 +25,7 @@ class RecaptchaArgs implements Jsonable {
 class RecaptchaVerificationInvokeArgs extends RecaptchaArgs {
   final String redirectUrl;
 
-  RecaptchaVerificationInvokeArgs({
+  const RecaptchaVerificationInvokeArgs({
     required String siteKey,
     required String siteToken,
     required this.redirectUrl,

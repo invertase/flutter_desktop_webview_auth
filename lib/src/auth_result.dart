@@ -3,7 +3,11 @@ class AuthResult {
   final String? idToken;
   final String? tokenSecret;
 
-  AuthResult({this.accessToken, this.idToken, this.tokenSecret});
+  const AuthResult({
+    this.accessToken,
+    this.idToken,
+    this.tokenSecret,
+  });
 
   @override
   String toString() {

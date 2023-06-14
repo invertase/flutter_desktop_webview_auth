@@ -1,5 +1,5 @@
 class RecaptchaResult {
   final String? verificationId;
 
-  RecaptchaResult(this.verificationId);
+  const RecaptchaResult(this.verificationId);
 }
