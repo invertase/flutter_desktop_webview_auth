@@ -1,3 +1,7 @@
+# 0.0.13
+
+- Chore: Upgrade dependencies
+
 # 0.0.12
 
 - Fix: Add support to AGP 8.0.
