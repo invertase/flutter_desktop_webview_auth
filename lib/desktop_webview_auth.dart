@@ -28,16 +28,16 @@ class DesktopWebviewAuth {
 
   static _invokeMethod<T>({
     required String name,
-    required Jsonable args,
+    required JsonSerializable args,
     num? width,
     num? height,
   }) async {
-    final _args = await args.toJson();
+    final args0 = await args.toJson();
 
     return _channel.invokeMethod<T>(name, {
       if (width != null) 'width': width.toInt(),
       if (height != null) 'height': height.toInt(),
-      ..._args,
+      ...args0,
     });
   }
 

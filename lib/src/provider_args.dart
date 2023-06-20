@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'auth_result.dart';
 import 'jsonable.dart';
 
-abstract class ProviderArgs implements Jsonable {
+abstract class ProviderArgs implements JsonSerializable {
   String get redirectUri;
   String get host;
   String get path;
