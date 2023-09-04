@@ -45,6 +45,12 @@ public class WebviewController: NSViewController, WKNavigationDelegate {
     
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         
+        if navigationAction.navigationType == .formSubmitted {
+            // Call the decisionHandler to allow the navigation to continue
+            decisionHandler(.allow)
+            return
+        }
+
         guard let url = navigationAction.request.url else {
             decisionHandler(.allow);
             return
