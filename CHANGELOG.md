@@ -1,3 +1,7 @@
+# 0.0.14
+
+- fix: Deprecated package tag in AndroidManifest.xml
+
 # 0.0.13
 
 - Chore: Upgrade dependencies
