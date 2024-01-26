@@ -1,3 +1,7 @@
+# 0.0.15
+
+- fix: Google Sign in exiting early, updated OAuth path
+
 # 0.0.14
 
 - fix: Deprecated package tag in AndroidManifest.xml
