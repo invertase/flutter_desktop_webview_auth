@@ -1,4 +1,5 @@
 import 'src/provider_args.dart';
+import 'src/util.dart';
 
 const _defaultSignInScope = 'https://www.googleapis.com/auth/plus.login';
 
@@ -15,7 +16,7 @@ class GoogleSignInArgs extends ProviderArgs {
   final host = 'accounts.google.com';
 
   @override
-  final path = '/o/oauth2/auth';
+  final path = '/o/oauth2/v2/auth';
 
   GoogleSignInArgs({
     required this.clientId,
@@ -33,6 +34,7 @@ class GoogleSignInArgs extends ProviderArgs {
       'immediate': immediate.toString(),
       'response_type': responseType,
       'redirect_uri': redirectUri,
+      'nonce': generateNonce()
     };
   }
 }
