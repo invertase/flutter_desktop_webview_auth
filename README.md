@@ -107,7 +107,8 @@ FirebaseAuth.instance.signInWithCredential(credential);
 ```dart
 import 'package:desktop_webview_auth/desktop_webview_auth.dart';
 import 'package:desktop_webview_auth/apple.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+//For Windows platform use firebase_auth version 5.1.4 or later [PR#13086](https://github.com/firebase/flutterfire/pull/13086)
+import 'package:firebase_auth/firebase_auth.dart';  
 
 final args = AppleSignInArgs(
     clientId: "your-service-id", //Services ID used as the web application identifier
@@ -123,10 +124,9 @@ try {
     // something went wrong
 }
 
-final credential = AppleAuthProvider.credentialWithIDToken(
-    result.idToken!,
-    args.nonce,
-    AppleFullPersonName(),
+final credential = OAuthProvider("apple.com").credential(
+    idToken: result.idToken!,
+    rawNonce: args.nonce,
 );
 
 FirebaseAuth.instance.signInWithCredential(credential);

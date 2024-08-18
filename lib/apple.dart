@@ -39,7 +39,7 @@ const _defaultSignInScope = '';
 ///       throw Exception("Authorize process terminated");
 ///     }
 ///
-///     final credential = AppleAuthProvider.credentialWithIDToken(result.idToken!, args.nonce, AppleFullPersonName());
+///     final credential = OAuthProvider("apple.com").credential(idToken: result.idToken!, rawNonce: args.nonce);
 ///     FirebaseAuth.instance.signInWithCredential(credential);
 ///
 class AppleSignInArgs extends ProviderArgs {
