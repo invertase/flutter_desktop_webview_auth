@@ -103,9 +103,7 @@ FirebaseAuth.instance.signInWithCredential(credential);
 
 
 - Example of Apple auth 
-
-For Windows platform use firebase_auth version 5.1.4 or later.
-[PR#13086](https://github.com/firebase/flutterfire/pull/13086)
+- For Windows platform use firebase_auth version 5.1.4 or later. [PR#13086](https://github.com/firebase/flutterfire/pull/13086)
 
 ```dart
 import 'package:desktop_webview_auth/desktop_webview_auth.dart';
