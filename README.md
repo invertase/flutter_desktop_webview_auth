@@ -63,6 +63,12 @@ Make sure you are on latest stable channle of Flutter, and have installed the re
 
 Nothing extra is needed to get started on Windows.
 
+### Swift Package Manager (iOS / macOS)
+
+> **Contributor note (Xcode 26+):** build the example app under Swift Package Manager
+> from a checkout named `desktop_webview_auth` (matching the pubspec name), otherwise
+> it fails with a SwiftPM identity-mismatch error. pub.dev consumers are unaffected.
+
 ### Add dependency
 
 ```bash
