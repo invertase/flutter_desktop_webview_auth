@@ -25,6 +25,7 @@ This package enables Firebase OAuth on desktop platforms via webview
 ## Supported providers:
 
 - Google
+- Apple
 - Facebook
 - Twitter
 
@@ -111,7 +112,38 @@ try {
 ```dart
 import 'package:firebase_auth/firebase_auth.dart';
 
-final credential = GoogleAuthProvider.credential(accessToken: result.accessToken)
+final credential = GoogleAuthProvider.credential(accessToken: result.accessToken);
+
+FirebaseAuth.instance.signInWithCredential(credential);
+```
+
+
+- Example of Apple auth 
+- For Windows platform use firebase_auth version 5.1.4 or later. [PR#13086](https://github.com/firebase/flutterfire/pull/13086)
+
+```dart
+import 'package:desktop_webview_auth/desktop_webview_auth.dart';
+import 'package:desktop_webview_auth/apple.dart';
+import 'package:firebase_auth/firebase_auth.dart';  
+
+final args = AppleSignInArgs(
+    clientId: "your-service-id", //Services ID used as the web application identifier
+    redirectUri: "https://your-project.firebaseapp.com/__/auth/handler",
+);
+
+try {
+    final result = await DesktopWebviewAuth.signIn(args);
+    if (result == null || result.idToken == null) {
+      throw Exception("Authorize process terminated");
+    }
+} catch (err) {
+    // something went wrong
+}
+
+final credential = OAuthProvider("apple.com").credential(
+    idToken: result.idToken!,
+    rawNonce: args.nonce,
+);
 
 FirebaseAuth.instance.signInWithCredential(credential);
 ```
